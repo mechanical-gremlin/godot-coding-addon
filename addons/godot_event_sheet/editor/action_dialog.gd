@@ -21,6 +21,7 @@ const ACTION_TYPES := {
 	"Animation: Play": "anim_play",
 	"Animation: Play Backwards": "anim_play_back",
 	"Animation: Stop": "anim_stop",
+	"Animation: Pause": "anim_pause",
 	"Scene: Create Instance": "scene_create",
 	"Scene: Destroy Node": "scene_destroy",
 	"Audio: Play Sound": "sound_play",
@@ -137,6 +138,10 @@ func _create_action_from_key(key: String) -> ESAction:
 		"anim_stop":
 			var a := ESAnimationAction.new()
 			a.operation = ESAnimationAction.AnimOp.STOP
+			return a
+		"anim_pause":
+			var a := ESAnimationAction.new()
+			a.operation = ESAnimationAction.AnimOp.PAUSE
 			return a
 		"scene_create":
 			var a := ESSceneAction.new()

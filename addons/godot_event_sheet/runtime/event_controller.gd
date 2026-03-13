@@ -13,7 +13,7 @@ extends Node
 ## This is the main node students interact with to add visual logic to their game objects.
 
 ## The EventSheet resource containing all events.
-@export var event_sheet: Resource = null  # ESEventSheet
+@export var event_sheet: ESEventSheet = null
 
 ## If true, print debug messages when events fire.
 @export var debug_mode: bool = false
@@ -27,7 +27,7 @@ var _initialized: bool = false
 
 
 func _ready() -> void:
-	if not event_sheet or not event_sheet is ESEventSheet:
+	if not event_sheet:
 		if debug_mode:
 			push_warning("EventSheet: No valid EventSheet assigned to %s" % name)
 		return

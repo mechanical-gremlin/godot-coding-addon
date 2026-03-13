@@ -16,6 +16,8 @@ var _events_container: VBoxContainer
 var _no_sheet_label: Label
 var _sheet_name_edit: LineEdit
 
+const _NO_SHEET_TEXT := "Select an EventController node to edit its Event Sheet.\n\nTo get started:\n1. Add an EventController node as a child of your game object\n2. Create a new EventSheet resource in the Inspector\n3. Click the EventController to open this editor"
+
 # Preloaded dialog scripts.
 const ConditionDialog := preload("res://addons/godot_event_sheet/editor/condition_dialog.gd")
 const ActionDialog := preload("res://addons/godot_event_sheet/editor/action_dialog.gd")
@@ -75,7 +77,7 @@ func _build_ui() -> void:
 
 	# -- No sheet label --
 	_no_sheet_label = Label.new()
-	_no_sheet_label.text = "Select an EventController node to edit its Event Sheet.\n\nTo get started:\n1. Add an EventController node as a child of your game object\n2. Create a new EventSheet resource in the Inspector\n3. Click the EventController to open this editor"
+	_no_sheet_label.text = _NO_SHEET_TEXT
 	_no_sheet_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_no_sheet_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_no_sheet_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
