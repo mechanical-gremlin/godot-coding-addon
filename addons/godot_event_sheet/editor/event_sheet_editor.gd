@@ -16,11 +16,12 @@ var _events_container: VBoxContainer
 var _no_sheet_label: Label
 var _sheet_name_edit: LineEdit
 
-const _NO_SHEET_TEXT := "Select an EventController node to edit its Event Sheet.\n\nTo get started:\n1. Add an EventController node as a child of your game object\n2. Create a new EventSheet resource in the Inspector\n3. Click the EventController to open this editor"
+const _NO_SHEET_TEXT := "Select an EventController node to edit its Event Sheet.\n\nTo get started:\n1. Add an EventController node as a child of your game object\n2. Click the EventController node to open this editor\n3. Click '+ Add Event' to create your first event"
 
 # Preloaded dialog scripts.
 const ConditionDialog := preload("res://addons/godot_event_sheet/editor/condition_dialog.gd")
 const ActionDialog := preload("res://addons/godot_event_sheet/editor/action_dialog.gd")
+const AddEventDialog := preload("res://addons/godot_event_sheet/editor/add_event_dialog.gd")
 
 
 func _ready() -> void:
@@ -33,6 +34,11 @@ func edit_controller(controller: Node) -> void:
 	_current_controller = controller
 	if controller and "event_sheet" in controller:
 		_current_sheet = controller.get("event_sheet") as ESEventSheet
+		# Auto-create an EventSheet if none exists (1-step setup).
+		if _current_sheet == null:
+			_current_sheet = ESEventSheet.new()
+			controller.set("event_sheet", _current_sheet)
+			print("EventSheet: Auto-created a new Event Sheet for '%s'. Ready to add events!" % controller.name)
 	else:
 		_current_sheet = null
 	_refresh()
@@ -116,6 +122,13 @@ func _refresh() -> void:
 		child.queue_free()
 
 	# Build event rows.
+	if _current_sheet.events.size() == 0:
+		var empty_label := Label.new()
+		empty_label.text = "No events yet. Click '+ Add Event' above to create your first event!\n\nEvents are simple: WHEN something happens → THEN do something."
+		empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		empty_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		empty_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+		_events_container.add_child(empty_label)
 	for i in range(_current_sheet.events.size()):
 		var event := _current_sheet.events[i] as ESEventItem
 		if event:
@@ -381,8 +394,20 @@ func _create_action_row(action: ESAction, event: ESEventItem, action_index: int)
 func _on_add_event() -> void:
 	if not _current_sheet:
 		return
-	_current_sheet.add_event()
-	_refresh()
+
+	var dialog := AddEventDialog.create()
+	add_child(dialog)
+	dialog.popup_centered(Vector2i(700, 550))
+	dialog.confirmed.connect(func():
+		var event := _current_sheet.add_event() as ESEventItem
+		var cond: ESCondition = dialog.get_selected_condition()
+		var action: ESAction = dialog.get_selected_action()
+		if cond:
+			event.add_condition(cond)
+		if action:
+			event.add_action(action)
+		_refresh()
+	)
 
 
 func _on_sheet_name_changed(new_name: String) -> void:

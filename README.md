@@ -36,12 +36,17 @@ CharacterBody2D (your game object)
 ```
 
 1. Add an **EventController** node as a child of your game object
-2. In the Inspector, create a new **EventSheet** resource for the EventController
-3. Click on the EventController — the **Event Sheet** panel opens at the bottom
+2. Click on the EventController — the **Event Sheet** panel opens at the bottom and is immediately ready to use (an EventSheet resource is auto-created for you)
 
 ### 4. Create Events
 
-Each event has **Conditions** (left side) and **Actions** (right side):
+Click **+ Add Event** to open the event wizard. Each event uses a simple **"When → Then"** model:
+
+1. Pick a **trigger** (WHEN this happens) from the left list
+2. Configure its settings (e.g., which key to listen for)
+3. Pick a **reaction** (THEN do this) from the right list
+4. Configure its settings (e.g., which direction to move)
+5. Click **Create Event** — done!
 
 | Conditions (ALL must be true) | Actions (executed in order) |
 |-------------------------------|---------------------------|
@@ -160,6 +165,7 @@ addons/godot_event_sheet/
 │   └── event_controller.gd # Runtime event processor node
 └── editor/                 # Editor UI
     ├── event_sheet_editor.gd
+    ├── add_event_dialog.gd
     ├── condition_dialog.gd
     └── action_dialog.gd
 ```
