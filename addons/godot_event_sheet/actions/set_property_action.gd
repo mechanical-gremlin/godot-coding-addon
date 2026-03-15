@@ -1,3 +1,4 @@
+@tool
 class_name ESSetPropertyAction
 extends ESAction
 ## Action that sets a property on a target node.

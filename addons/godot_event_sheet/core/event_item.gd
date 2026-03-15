@@ -1,3 +1,4 @@
+@tool
 class_name ESEventItem
 extends Resource
 ## A single event that pairs one or more Conditions with one or more Actions.

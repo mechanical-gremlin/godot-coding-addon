@@ -1,3 +1,4 @@
+@tool
 class_name ESEventController
 extends Node
 ## Runtime controller that evaluates an EventSheet's conditions and executes actions.
@@ -27,6 +28,8 @@ var _initialized: bool = false
 
 
 func _ready() -> void:
+	if Engine.is_editor_hint():
+		return
 	if not event_sheet:
 		if debug_mode:
 			push_warning("EventSheet: No valid EventSheet assigned to %s" % name)
@@ -48,6 +51,8 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
 	if not _initialized:
 		return
 	_evaluate_events(_process_events, delta)
@@ -57,6 +62,8 @@ func _process(delta: float) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
 	if not _initialized:
 		return
 	_evaluate_events(_physics_events, delta)
