@@ -35,16 +35,14 @@ func execute(controller: Node, delta: float) -> void:
 		var body := target as CharacterBody2D
 		if not body.is_on_floor():
 			body.velocity.y += gravity * delta
-			if body.velocity.y > max_fall_speed:
-				body.velocity.y = max_fall_speed
+			body.velocity.y = clampf(body.velocity.y, -max_fall_speed, max_fall_speed)
 		if call_move_and_slide:
 			body.move_and_slide()
 	elif target is CharacterBody3D:
 		var body := target as CharacterBody3D
 		if not body.is_on_floor():
 			body.velocity.y += gravity * delta
-			if body.velocity.y > max_fall_speed:
-				body.velocity.y = max_fall_speed
+			body.velocity.y = clampf(body.velocity.y, -max_fall_speed, max_fall_speed)
 		if call_move_and_slide:
 			body.move_and_slide()
 	else:

@@ -266,7 +266,7 @@ func _create_conditions_column(event: ESEventItem, event_index: int) -> VBoxCont
 			event.logic_mode = ESEventItem.LogicMode.OR
 		else:
 			event.logic_mode = ESEventItem.LogicMode.AND
-		_current_sheet.emit_changed()
+		_mark_resource_modified()
 		_refresh()
 	)
 	header.add_child(logic_btn)
