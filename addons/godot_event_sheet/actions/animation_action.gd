@@ -1,3 +1,4 @@
+@tool
 class_name ESAnimationAction
 extends ESAction
 ## Action that controls an AnimationPlayer or AnimatedSprite2D.
@@ -82,9 +83,11 @@ func _find_player(controller: Node) -> Node:
 	if not player_path.is_empty():
 		return controller.get_node_or_null(player_path)
 
-	# Auto-detect: search parent's children for an animation node.
+	# Auto-detect: check the parent itself first, then search its children.
 	var parent := controller.get_parent()
 	if parent:
+		if parent is AnimatedSprite2D or parent is AnimationPlayer:
+			return parent
 		for child in parent.get_children():
 			if child is AnimationPlayer or child is AnimatedSprite2D:
 				return child

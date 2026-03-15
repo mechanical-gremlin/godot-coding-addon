@@ -1,3 +1,4 @@
+@tool
 class_name ESPropertyCondition
 extends ESCondition
 ## Condition that compares a property on a node against a value.

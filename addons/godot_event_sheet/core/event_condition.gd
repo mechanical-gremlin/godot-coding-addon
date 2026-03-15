@@ -1,3 +1,4 @@
+@tool
 class_name ESCondition
 extends Resource
 ## Base class for all Event Sheet conditions.

@@ -1,3 +1,4 @@
+@tool
 class_name ESEmitSignalAction
 extends ESAction
 ## Action that emits a signal on a target node.

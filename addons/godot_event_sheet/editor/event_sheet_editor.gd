@@ -289,7 +289,11 @@ func _create_condition_row(cond: ESCondition, event: ESEventItem, cond_index: in
 
 	# Summary.
 	var summary := Label.new()
-	summary.text = cond.get_summary()
+	if cond.get_script() and cond.get_script().is_tool():
+		summary.text = cond.get_summary()
+	else:
+		summary.text = "(unable to load condition — is the script in @tool mode?)"
+		summary.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4))
 	summary.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	summary.clip_text = true
 	row.add_child(summary)
@@ -364,7 +368,11 @@ func _create_action_row(action: ESAction, event: ESEventItem, action_index: int)
 
 	# Summary.
 	var summary := Label.new()
-	summary.text = action.get_summary()
+	if action.get_script() and action.get_script().is_tool():
+		summary.text = action.get_summary()
+	else:
+		summary.text = "(unable to load action — is the script in @tool mode?)"
+		summary.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4))
 	summary.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	summary.clip_text = true
 	row.add_child(summary)

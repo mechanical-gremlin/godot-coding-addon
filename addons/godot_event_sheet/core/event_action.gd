@@ -1,3 +1,4 @@
+@tool
 class_name ESAction
 extends Resource
 ## Base class for all Event Sheet actions.

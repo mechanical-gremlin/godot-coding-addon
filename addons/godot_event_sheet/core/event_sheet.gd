@@ -1,3 +1,4 @@
+@tool
 class_name ESEventSheet
 extends Resource
 ## The main Event Sheet resource that holds all events.
