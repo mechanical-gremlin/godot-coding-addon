@@ -520,7 +520,7 @@ func _add_direction_dropdown(container: VBoxContainer, action: ESMoveAction) -> 
 	xy_row.visible = (initial_idx == custom_idx)
 
 	dropdown.item_selected.connect(func(idx: int):
-		var name_key := preset_names[idx]
+		var name_key: String = preset_names[idx]
 		if name_key == "Custom (X/Y)":
 			xy_row.visible = true
 		else:
