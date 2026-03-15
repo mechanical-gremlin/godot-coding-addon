@@ -1,5 +1,4 @@
 @tool
-class_name ESTimerCondition
 extends ESCondition
 ## Condition that triggers periodically or after a delay.
 ## The EventController creates a Timer node automatically.

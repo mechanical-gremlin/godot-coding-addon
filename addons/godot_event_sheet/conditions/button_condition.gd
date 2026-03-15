@@ -1,5 +1,4 @@
 @tool
-class_name ESButtonCondition
 extends ESCondition
 ## Condition that fires once when a UI Button node is clicked.
 ## The EventController automatically connects to the button's "pressed" signal.

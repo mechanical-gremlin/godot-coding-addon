@@ -2,6 +2,17 @@
 extends ConfirmationDialog
 ## Dialog for picking a new action type or editing an existing action.
 
+# Preloaded action scripts (no class_name, so we use preload constants).
+const ESMoveAction := preload("res://addons/godot_event_sheet/actions/move_action.gd")
+const ESKnockbackAction := preload("res://addons/godot_event_sheet/actions/knockback_action.gd")
+const ESSetPropertyAction := preload("res://addons/godot_event_sheet/actions/set_property_action.gd")
+const ESEmitSignalAction := preload("res://addons/godot_event_sheet/actions/emit_signal_action.gd")
+const ESAnimationAction := preload("res://addons/godot_event_sheet/actions/animation_action.gd")
+const ESSceneAction := preload("res://addons/godot_event_sheet/actions/scene_action.gd")
+const ESSoundAction := preload("res://addons/godot_event_sheet/actions/sound_action.gd")
+const ESPrintAction := preload("res://addons/godot_event_sheet/actions/print_action.gd")
+const ESGravityAction := preload("res://addons/godot_event_sheet/actions/gravity_action.gd")
+
 var _action_list: ItemList
 var _property_editor: VBoxContainer
 var _selected_action: ESAction = null
@@ -45,6 +56,7 @@ const ACTION_TYPES := {
 	"Scene: Hide Node": "scene_hide",
 	"Audio: Play Sound": "sound_play",
 	"Audio: Stop Sound": "sound_stop",
+	"Physics: Apply Gravity": "gravity",
 	"Debug: Print Message": "debug_print",
 }
 
@@ -80,13 +92,22 @@ func _build_picker_ui() -> void:
 	label.text = "Select an action type:"
 	vbox.add_child(label)
 
+	var split := HBoxContainer.new()
+	split.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vbox.add_child(split)
+
 	_action_list = ItemList.new()
 	_action_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_action_list.custom_minimum_size = Vector2(0, 250)
-	vbox.add_child(_action_list)
+	_action_list.custom_minimum_size = Vector2(280, 250)
+	split.add_child(_action_list)
+
+	var vsep := VSeparator.new()
+	split.add_child(vsep)
 
 	_property_editor = VBoxContainer.new()
-	vbox.add_child(_property_editor)
+	_property_editor.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_property_editor.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	split.add_child(_property_editor)
 
 	var idx := 0
 	for type_name in ACTION_TYPES:
@@ -202,6 +223,8 @@ func create_action_from_key(key: String) -> ESAction:
 			return a
 		"debug_print":
 			return ESPrintAction.new()
+		"gravity":
+			return ESGravityAction.new()
 	return null
 
 
@@ -312,6 +335,13 @@ func build_property_fields(container: VBoxContainer, action: ESAction) -> void:
 		_add_string_field(container, "Message:", action, "message",
 			"Use {name}, {position}, {delta} as placeholders")
 		_add_bool_field(container, "Show as Warning:", action, "as_warning")
+
+	elif action is ESGravityAction:
+		_add_node_path_field(container, "Target Node:", action, "target_path",
+			"CharacterBody2D/3D to apply gravity to (leave empty for parent)")
+		_add_float_field(container, "Gravity:", action, "gravity")
+		_add_float_field(container, "Max Fall Speed:", action, "max_fall_speed")
+		_add_bool_field(container, "Call move_and_slide():", action, "call_move_and_slide")
 
 
 # -- Field Helpers (same pattern as condition_dialog.gd) --

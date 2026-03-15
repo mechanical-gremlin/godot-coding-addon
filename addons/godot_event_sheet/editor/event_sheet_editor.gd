@@ -165,7 +165,7 @@ func _create_event_row(event: ESEventItem, index: int) -> PanelContainer:
 	enabled_check.tooltip_text = "Enable/Disable this event"
 	enabled_check.toggled.connect(func(toggled: bool):
 		event.enabled = toggled
-		_current_sheet.emit_changed()
+		_mark_resource_modified()
 	)
 	header.add_child(enabled_check)
 
@@ -176,7 +176,7 @@ func _create_event_row(event: ESEventItem, index: int) -> PanelContainer:
 	name_edit.custom_minimum_size.x = 200
 	name_edit.text_submitted.connect(func(new_text: String):
 		event.event_name = new_text
-		_current_sheet.emit_changed()
+		_mark_resource_modified()
 	)
 	header.add_child(name_edit)
 
@@ -248,13 +248,28 @@ func _create_conditions_column(event: ESEventItem, event_index: int) -> VBoxCont
 	vbox.add_child(header)
 
 	var label := Label.new()
-	label.text = "📋 Conditions (ALL must be true)"
+	var logic_text := "ALL" if event.logic_mode == ESEventItem.LogicMode.AND else "ANY"
+	label.text = "📋 Conditions (%s must be true)" % logic_text
 	label.add_theme_font_size_override("font_size", 13)
 	header.add_child(label)
 
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(spacer)
+
+	# AND/OR toggle button.
+	var logic_btn := Button.new()
+	logic_btn.text = "AND" if event.logic_mode == ESEventItem.LogicMode.AND else "OR"
+	logic_btn.tooltip_text = "Toggle between AND (all true) and OR (any true) logic"
+	logic_btn.pressed.connect(func():
+		if event.logic_mode == ESEventItem.LogicMode.AND:
+			event.logic_mode = ESEventItem.LogicMode.OR
+		else:
+			event.logic_mode = ESEventItem.LogicMode.AND
+		_mark_resource_modified()
+		_refresh()
+	)
+	header.add_child(logic_btn)
 
 	var add_btn := Button.new()
 	add_btn.text = "+ Condition"
@@ -399,6 +414,14 @@ func _create_action_row(action: ESAction, event: ESEventItem, action_index: int)
 
 # -- Event Management --
 
+## Notify the Godot editor that the resource has been modified and needs saving.
+func _mark_resource_modified() -> void:
+	if _current_sheet:
+		_current_sheet.emit_changed()
+		if editor_interface:
+			editor_interface.mark_scene_as_unsaved()
+
+
 func _on_add_event() -> void:
 	if not _current_sheet:
 		return
@@ -414,6 +437,7 @@ func _on_add_event() -> void:
 			event.add_condition(cond)
 		if action:
 			event.add_action(action)
+		_mark_resource_modified()
 		_refresh()
 	)
 
@@ -421,7 +445,7 @@ func _on_add_event() -> void:
 func _on_sheet_name_changed(new_name: String) -> void:
 	if _current_sheet:
 		_current_sheet.sheet_name = new_name
-		_current_sheet.emit_changed()
+		_mark_resource_modified()
 
 
 # -- Condition Dialogs --
@@ -434,6 +458,7 @@ func _show_condition_dialog(event: ESEventItem) -> void:
 		var cond: ESCondition = dialog.get_selected_condition()
 		if cond:
 			event.add_condition(cond)
+			_mark_resource_modified()
 			_refresh()
 	)
 
@@ -443,7 +468,7 @@ func _show_condition_edit_dialog(cond: ESCondition, event: ESEventItem, index: i
 	add_child(dialog)
 	dialog.popup_centered(Vector2i(500, 400))
 	dialog.confirmed.connect(func():
-		_current_sheet.emit_changed()
+		_mark_resource_modified()
 		_refresh()
 	)
 
@@ -458,6 +483,7 @@ func _show_action_dialog(event: ESEventItem) -> void:
 		var action: ESAction = dialog.get_selected_action()
 		if action:
 			event.add_action(action)
+			_mark_resource_modified()
 			_refresh()
 	)
 
@@ -467,6 +493,6 @@ func _show_action_edit_dialog(action: ESAction, event: ESEventItem, index: int) 
 	add_child(dialog)
 	dialog.popup_centered(Vector2i(500, 400))
 	dialog.confirmed.connect(func():
-		_current_sheet.emit_changed()
+		_mark_resource_modified()
 		_refresh()
 	)

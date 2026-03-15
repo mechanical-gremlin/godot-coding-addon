@@ -2,6 +2,15 @@
 extends ConfirmationDialog
 ## Dialog for picking a new condition type or editing an existing condition.
 
+# Preloaded condition scripts (no class_name, so we use preload constants).
+const ESInputCondition := preload("res://addons/godot_event_sheet/conditions/input_condition.gd")
+const ESCollisionCondition := preload("res://addons/godot_event_sheet/conditions/collision_condition.gd")
+const ESButtonCondition := preload("res://addons/godot_event_sheet/conditions/button_condition.gd")
+const ESSignalCondition := preload("res://addons/godot_event_sheet/conditions/signal_condition.gd")
+const ESPropertyCondition := preload("res://addons/godot_event_sheet/conditions/property_condition.gd")
+const ESTimerCondition := preload("res://addons/godot_event_sheet/conditions/timer_condition.gd")
+const ESLifecycleCondition := preload("res://addons/godot_event_sheet/conditions/lifecycle_condition.gd")
+
 var _condition_list: ItemList
 var _property_editor: VBoxContainer
 var _selected_condition: ESCondition = null
@@ -12,6 +21,8 @@ const CONDITION_TYPES := {
 	"Input: Key/Action Pressed": "input_pressed",
 	"Input: Key/Action Released": "input_released",
 	"Input: Key/Action Held": "input_held",
+	"Input: Any Key Pressed": "input_any_pressed",
+	"Input: Any Key Released": "input_any_released",
 	"Collision: Body Entered": "collision_body_entered",
 	"Collision: Body Exited": "collision_body_exited",
 	"Collision: Area Entered": "collision_area_entered",
@@ -59,14 +70,23 @@ func _build_picker_ui() -> void:
 	label.text = "Select a condition type:"
 	vbox.add_child(label)
 
+	var split := HBoxContainer.new()
+	split.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vbox.add_child(split)
+
 	_condition_list = ItemList.new()
+	_condition_list.custom_minimum_size = Vector2(280, 250)
 	_condition_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_condition_list.custom_minimum_size = Vector2(0, 250)
-	vbox.add_child(_condition_list)
+	split.add_child(_condition_list)
+
+	var vsep := VSeparator.new()
+	split.add_child(vsep)
 
 	# Property editor area (shown when a type is selected).
 	_property_editor = VBoxContainer.new()
-	vbox.add_child(_property_editor)
+	_property_editor.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_property_editor.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	split.add_child(_property_editor)
 
 	# Populate list.
 	var idx := 0
@@ -106,6 +126,14 @@ func create_condition_from_key(key: String) -> ESCondition:
 		"input_held":
 			var c := ESInputCondition.new()
 			c.input_type = ESInputCondition.InputType.IS_HELD
+			return c
+		"input_any_pressed":
+			var c := ESInputCondition.new()
+			c.input_type = ESInputCondition.InputType.ANY_JUST_PRESSED
+			return c
+		"input_any_released":
+			var c := ESInputCondition.new()
+			c.input_type = ESInputCondition.InputType.ANY_JUST_RELEASED
 			return c
 		"collision_body_entered":
 			var c := ESCollisionCondition.new()
@@ -180,10 +208,12 @@ func _build_editor_ui(condition: ESCondition) -> void:
 ## Build property input fields for any condition type.
 func build_property_fields(container: VBoxContainer, condition: ESCondition) -> void:
 	if condition is ESInputCondition:
-		_add_string_field(container, "Action or Key Name:", condition, "action_or_key",
-			"Enter an input action (e.g., ui_up, ui_accept) or key name (e.g., W, Space, Up)")
 		_add_enum_field(container, "Input Type:", condition, "input_type",
-			["Just Pressed", "Just Released", "Is Held"])
+			["Just Pressed", "Just Released", "Is Held", "Any Key Pressed", "Any Key Released"])
+		# Only show action/key field for specific key conditions.
+		if condition.input_type < ESInputCondition.InputType.ANY_JUST_PRESSED:
+			_add_string_field(container, "Action or Key Name:", condition, "action_or_key",
+				"Enter an input action (e.g., ui_up, ui_accept) or key name (e.g., W, Space, Up)")
 
 	elif condition is ESCollisionCondition:
 		_add_node_path_field(container, "Detector Node:", condition, "detector_path",

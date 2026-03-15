@@ -1,5 +1,4 @@
 @tool
-class_name ESPrintAction
 extends ESAction
 ## Action that prints a message to the console. Useful for debugging.
 

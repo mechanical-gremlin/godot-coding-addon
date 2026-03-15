@@ -13,6 +13,14 @@ extends Node
 ##
 ## This is the main node students interact with to add visual logic to their game objects.
 
+# Preloaded condition scripts for type checking.
+const ESInputCondition := preload("res://addons/godot_event_sheet/conditions/input_condition.gd")
+const ESCollisionCondition := preload("res://addons/godot_event_sheet/conditions/collision_condition.gd")
+const ESButtonCondition := preload("res://addons/godot_event_sheet/conditions/button_condition.gd")
+const ESSignalCondition := preload("res://addons/godot_event_sheet/conditions/signal_condition.gd")
+const ESTimerCondition := preload("res://addons/godot_event_sheet/conditions/timer_condition.gd")
+const ESLifecycleCondition := preload("res://addons/godot_event_sheet/conditions/lifecycle_condition.gd")
+
 ## The EventSheet resource containing all events.
 @export var event_sheet: ESEventSheet = null
 
@@ -256,17 +264,31 @@ func _evaluate_events(events: Array, delta: float) -> void:
 		if not event or not event.enabled:
 			continue
 
-		# All conditions must be true (AND logic).
-		var all_pass := true
-		for cond_res in event.conditions:
-			var cond := cond_res as ESCondition
-			if not cond:
-				continue
-			if not cond.evaluate(self, delta):
-				all_pass = false
-				break
+		var conditions_pass := false
+		if event.conditions.size() == 0:
+			continue
 
-		if all_pass and event.conditions.size() > 0:
+		if event.logic_mode == ESEventItem.LogicMode.OR:
+			# OR logic: at least one condition must be true.
+			for cond_res in event.conditions:
+				var cond := cond_res as ESCondition
+				if not cond:
+					continue
+				if cond.evaluate(self, delta):
+					conditions_pass = true
+					break
+		else:
+			# AND logic (default): all conditions must be true.
+			conditions_pass = true
+			for cond_res in event.conditions:
+				var cond := cond_res as ESCondition
+				if not cond:
+					continue
+				if not cond.evaluate(self, delta):
+					conditions_pass = false
+					break
+
+		if conditions_pass:
 			# Store the colliding node (if any) so actions can reference it via "$collider".
 			for cond_res in event.conditions:
 				if cond_res is ESCollisionCondition:
@@ -294,6 +316,8 @@ func _track_key_states() -> void:
 	var sheet := event_sheet as ESEventSheet
 	if not sheet:
 		return
+	# Track "any key" state for ANY_JUST_PRESSED/ANY_JUST_RELEASED conditions.
+	set_meta("_es_any_key_prev", Input.is_anything_pressed())
 	for event_res in sheet.events:
 		var event := event_res as ESEventItem
 		if not event:
