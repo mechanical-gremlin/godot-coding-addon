@@ -1,5 +1,4 @@
 @tool
-class_name ESSetPropertyAction
 extends ESAction
 ## Action that sets a property on a target node.
 
@@ -150,7 +149,8 @@ func _convert_to_type(val: String, target_type: int) -> Variant:
 		TYPE_FLOAT:
 			return float(val)
 		TYPE_BOOL:
-			return val.to_lower() == "true" or val == "1"
+			var lower := val.strip_edges().to_lower()
+			return lower == "true" or lower == "1" or lower == "yes" or lower == "on"
 		TYPE_STRING:
 			return val
 		_:
@@ -158,6 +158,12 @@ func _convert_to_type(val: String, target_type: int) -> Variant:
 				return float(val)
 			if val.is_valid_int():
 				return int(val)
+			# Try boolean-like strings for untyped properties.
+			var lower := val.strip_edges().to_lower()
+			if lower in ["true", "yes", "on"]:
+				return true
+			if lower in ["false", "no", "off"]:
+				return false
 			return val
 
 

@@ -1,12 +1,13 @@
 @tool
-class_name ESInputCondition
 extends ESCondition
 ## Condition that checks for keyboard or action input.
 
 enum InputType {
-	JUST_PRESSED,  ## Key/action was just pressed this frame
-	JUST_RELEASED, ## Key/action was just released this frame
-	IS_HELD,       ## Key/action is currently held down
+	JUST_PRESSED,      ## Key/action was just pressed this frame
+	JUST_RELEASED,     ## Key/action was just released this frame
+	IS_HELD,           ## Key/action is currently held down
+	ANY_JUST_PRESSED,  ## Any key was just pressed this frame
+	ANY_JUST_RELEASED, ## Any key was just released this frame
 }
 
 ## The type of input check to perform.
@@ -19,7 +20,9 @@ enum InputType {
 
 
 func get_summary() -> String:
-	var type_names := ["just pressed", "just released", "is held"]
+	var type_names := ["just pressed", "just released", "is held", "any key pressed", "any key released"]
+	if input_type >= InputType.ANY_JUST_PRESSED:
+		return "Input %s" % type_names[input_type]
 	return "Input \"%s\" %s" % [action_or_key, type_names[input_type]]
 
 
@@ -28,6 +31,16 @@ func get_category() -> String:
 
 
 func evaluate(controller: Node, delta: float) -> bool:
+	# Handle "any key" conditions first.
+	if input_type == InputType.ANY_JUST_PRESSED:
+		var pressed_now := Input.is_anything_pressed()
+		var was_pressed: bool = controller.get_meta("_es_any_key_prev", false)
+		return pressed_now and not was_pressed
+	elif input_type == InputType.ANY_JUST_RELEASED:
+		var pressed_now := Input.is_anything_pressed()
+		var was_pressed: bool = controller.get_meta("_es_any_key_prev", false)
+		return not pressed_now and was_pressed
+
 	if action_or_key.is_empty():
 		return false
 

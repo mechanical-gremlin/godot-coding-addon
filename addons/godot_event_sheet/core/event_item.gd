@@ -2,7 +2,12 @@
 class_name ESEventItem
 extends Resource
 ## A single event that pairs one or more Conditions with one or more Actions.
-## When ALL conditions are met, ALL actions are executed.
+## When conditions are met (using AND or OR logic), all actions are executed.
+
+enum LogicMode {
+	AND, ## All conditions must be true
+	OR,  ## At least one condition must be true
+}
 
 ## Display name for this event (shown in the editor).
 @export var event_name: String = ""
@@ -10,10 +15,13 @@ extends Resource
 ## Whether this event is active.
 @export var enabled: bool = true
 
-## Conditions that must ALL be true for the actions to run.
+## How conditions are combined: AND (all must be true) or OR (any must be true).
+@export var logic_mode: LogicMode = LogicMode.AND
+
+## Conditions that are evaluated using the logic mode.
 @export var conditions: Array[Resource] = []  # Array of ESCondition
 
-## Actions executed (in order) when all conditions are met.
+## Actions executed (in order) when the conditions are met.
 @export var actions: Array[Resource] = []  # Array of ESAction
 
 

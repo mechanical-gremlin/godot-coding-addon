@@ -1,5 +1,4 @@
 @tool
-class_name ESMoveAction
 extends ESAction
 ## Action that moves a 2D or 3D node.
 

@@ -1,5 +1,4 @@
 @tool
-class_name ESAnimationAction
 extends ESAction
 ## Action that controls an AnimationPlayer or AnimatedSprite2D.
 

@@ -1,5 +1,4 @@
 @tool
-class_name ESLifecycleCondition
 extends ESCondition
 ## Condition based on the node lifecycle: ready, every frame, or every physics frame.
 
