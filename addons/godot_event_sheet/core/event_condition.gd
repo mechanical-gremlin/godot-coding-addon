@@ -4,6 +4,10 @@ extends Resource
 ## Base class for all Event Sheet conditions.
 ## Subclasses implement [method evaluate] to check whether the condition is met.
 
+## When true, the result of [method evaluate] is inverted (logical NOT).
+## This allows users to express "when NOT on floor" style conditions.
+@export var negated: bool = false
+
 ## Human-readable summary shown in the editor.
 func get_summary() -> String:
 	return "Base Condition"

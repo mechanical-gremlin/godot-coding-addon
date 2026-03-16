@@ -10,6 +10,7 @@ const ESSignalCondition := preload("res://addons/godot_event_sheet/conditions/si
 const ESPropertyCondition := preload("res://addons/godot_event_sheet/conditions/property_condition.gd")
 const ESTimerCondition := preload("res://addons/godot_event_sheet/conditions/timer_condition.gd")
 const ESLifecycleCondition := preload("res://addons/godot_event_sheet/conditions/lifecycle_condition.gd")
+const ESPhysicsCondition := preload("res://addons/godot_event_sheet/conditions/physics_condition.gd")
 
 var _condition_list: ItemList
 var _property_editor: VBoxContainer
@@ -36,6 +37,12 @@ const CONDITION_TYPES := {
 	"Lifecycle: On Ready": "lifecycle_ready",
 	"Lifecycle: Every Frame": "lifecycle_process",
 	"Lifecycle: Every Physics Frame": "lifecycle_physics",
+	"Physics: Is On Floor": "physics_on_floor",
+	"Physics: Is On Wall": "physics_on_wall",
+	"Physics: Is On Ceiling": "physics_on_ceiling",
+	"Physics: Is Moving": "physics_is_moving",
+	"Physics: Is Stopped": "physics_is_stopped",
+	"Physics: Is Falling": "physics_is_falling",
 }
 
 
@@ -75,7 +82,7 @@ func _build_picker_ui() -> void:
 	vbox.add_child(split)
 
 	_condition_list = ItemList.new()
-	_condition_list.custom_minimum_size = Vector2(280, 250)
+	_condition_list.custom_minimum_size = Vector2(300, 250)
 	_condition_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	split.add_child(_condition_list)
 
@@ -181,6 +188,30 @@ func create_condition_from_key(key: String) -> ESCondition:
 			var c := ESLifecycleCondition.new()
 			c.lifecycle_type = ESLifecycleCondition.LifecycleType.PHYSICS_PROCESS
 			return c
+		"physics_on_floor":
+			var c := ESPhysicsCondition.new()
+			c.physics_check = ESPhysicsCondition.PhysicsCheck.IS_ON_FLOOR
+			return c
+		"physics_on_wall":
+			var c := ESPhysicsCondition.new()
+			c.physics_check = ESPhysicsCondition.PhysicsCheck.IS_ON_WALL
+			return c
+		"physics_on_ceiling":
+			var c := ESPhysicsCondition.new()
+			c.physics_check = ESPhysicsCondition.PhysicsCheck.IS_ON_CEILING
+			return c
+		"physics_is_moving":
+			var c := ESPhysicsCondition.new()
+			c.physics_check = ESPhysicsCondition.PhysicsCheck.IS_MOVING
+			return c
+		"physics_is_stopped":
+			var c := ESPhysicsCondition.new()
+			c.physics_check = ESPhysicsCondition.PhysicsCheck.IS_STOPPED
+			return c
+		"physics_is_falling":
+			var c := ESPhysicsCondition.new()
+			c.physics_check = ESPhysicsCondition.PhysicsCheck.IS_FALLING
+			return c
 	return null
 
 
@@ -207,6 +238,9 @@ func _build_editor_ui(condition: ESCondition) -> void:
 
 ## Build property input fields for any condition type.
 func build_property_fields(container: VBoxContainer, condition: ESCondition) -> void:
+	# Negation toggle – available for every condition type.
+	_add_bool_field(container, "Negate (NOT):", condition, "negated")
+
 	if condition is ESInputCondition:
 		_add_enum_field(container, "Input Type:", condition, "input_type",
 			["Just Pressed", "Just Released", "Is Held", "Any Key Pressed", "Any Key Released"])
@@ -248,6 +282,12 @@ func build_property_fields(container: VBoxContainer, condition: ESCondition) -> 
 	elif condition is ESLifecycleCondition:
 		_add_enum_field(container, "Event Type:", condition, "lifecycle_type",
 			["On Ready (once)", "Every Frame", "Every Physics Frame"])
+
+	elif condition is ESPhysicsCondition:
+		_add_node_path_field(container, "Target Node:", condition, "node_path",
+			"Path to CharacterBody2D/3D (leave empty for parent)")
+		_add_enum_field(container, "Physics Check:", condition, "physics_check",
+			["Is On Floor", "Is On Wall", "Is On Ceiling", "Is Moving", "Is Stopped", "Is Falling"])
 
 
 ## Helper: add a string input field.

@@ -88,14 +88,19 @@ func _execute_2d(node: Node2D, dt: float, controller: Node) -> void:
 				var direction := Vector2(x, y)
 				if direction.length() > 0:
 					direction = direction.normalized()
-				# Only modify velocity axes that have a non-zero direction
-				# component.  This preserves gravity on velocity.y when
-				# doing horizontal movement and preserves horizontal
-				# velocity when jumping.
-				if x != 0.0:
-					body.velocity.x = direction.x * speed
-				if y != 0.0:
-					body.velocity.y = direction.y * speed
+				# When direction is zero and speed is zero the user wants
+				# to stop all movement (e.g. "any key released → stop").
+				if direction == Vector2.ZERO and speed == 0.0:
+					body.velocity = Vector2.ZERO
+				else:
+					# Only modify velocity axes that have a non-zero direction
+					# component.  This preserves gravity on velocity.y when
+					# doing horizontal movement and preserves horizontal
+					# velocity when jumping.
+					if x != 0.0:
+						body.velocity.x = direction.x * speed
+					if y != 0.0:
+						body.velocity.y = direction.y * speed
 				body.move_and_slide()
 
 
@@ -120,12 +125,17 @@ func _execute_3d(node: Node3D, dt: float, controller: Node) -> void:
 				var direction := Vector3(x, y, 0)
 				if direction.length() > 0:
 					direction = direction.normalized()
-				# Only modify velocity axes that have a non-zero direction
-				# component (see 2D counterpart above for rationale).
-				if x != 0.0:
-					body.velocity.x = direction.x * speed
-				if y != 0.0:
-					body.velocity.y = direction.y * speed
+				# When direction is zero and speed is zero the user wants
+				# to stop all movement (see 2D counterpart above).
+				if direction == Vector3.ZERO and speed == 0.0:
+					body.velocity = Vector3.ZERO
+				else:
+					# Only modify velocity axes that have a non-zero direction
+					# component (see 2D counterpart above for rationale).
+					if x != 0.0:
+						body.velocity.x = direction.x * speed
+					if y != 0.0:
+						body.velocity.y = direction.y * speed
 				body.move_and_slide()
 
 

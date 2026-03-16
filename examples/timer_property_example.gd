@@ -1,6 +1,16 @@
 extends Node
 ## Example: Timer events and property manipulation with the Event Sheet addon.
 ##
+## NOTE: Condition and action scripts do not declare class_name, so we
+## reference them via preload() constants – the same pattern used by the
+## editor dialogs and the runtime controller.
+
+const ESLifecycleCondition := preload("res://addons/godot_event_sheet/conditions/lifecycle_condition.gd")
+const ESTimerCondition := preload("res://addons/godot_event_sheet/conditions/timer_condition.gd")
+const ESPropertyCondition := preload("res://addons/godot_event_sheet/conditions/property_condition.gd")
+const ESPrintAction := preload("res://addons/godot_event_sheet/actions/print_action.gd")
+const ESSetPropertyAction := preload("res://addons/godot_event_sheet/actions/set_property_action.gd")
+##
 ## This demonstrates periodic events using timers and how to read/modify
 ## node properties — useful for game mechanics like health bars, scoring,
 ## and visual effects.

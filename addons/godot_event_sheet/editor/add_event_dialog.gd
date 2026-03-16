@@ -24,6 +24,12 @@ const TRIGGER_TYPES := {
 	"While an object is overlapping (floor switch)": "collision_is_overlapping",
 	"When a signal is received": "signal_received",
 	"When a property matches a value": "property_compare",
+	"When the player is on the floor": "physics_on_floor",
+	"When the player is on a wall": "physics_on_wall",
+	"When the player is on a ceiling": "physics_on_ceiling",
+	"When the player is moving": "physics_is_moving",
+	"When the player is stopped": "physics_is_stopped",
+	"When the player is falling": "physics_is_falling",
 }
 
 # --- Reaction (action) choices, using student-friendly labels ---
@@ -103,7 +109,7 @@ func _build_ui() -> void:
 	root.add_child(trigger_split)
 
 	_trigger_list = ItemList.new()
-	_trigger_list.custom_minimum_size = Vector2(260, 0)
+	_trigger_list.custom_minimum_size = Vector2(280, 0)
 	_trigger_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	trigger_split.add_child(_trigger_list)
 
@@ -131,7 +137,7 @@ func _build_ui() -> void:
 	root.add_child(reaction_split)
 
 	_reaction_list = ItemList.new()
-	_reaction_list.custom_minimum_size = Vector2(260, 0)
+	_reaction_list.custom_minimum_size = Vector2(280, 0)
 	_reaction_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	reaction_split.add_child(_reaction_list)
 

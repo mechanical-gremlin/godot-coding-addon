@@ -98,7 +98,7 @@ func _build_picker_ui() -> void:
 
 	_action_list = ItemList.new()
 	_action_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_action_list.custom_minimum_size = Vector2(280, 250)
+	_action_list.custom_minimum_size = Vector2(300, 250)
 	split.add_child(_action_list)
 
 	var vsep := VSeparator.new()
