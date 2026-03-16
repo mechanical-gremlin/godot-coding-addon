@@ -20,6 +20,7 @@ const ESButtonCondition := preload("res://addons/godot_event_sheet/conditions/bu
 const ESSignalCondition := preload("res://addons/godot_event_sheet/conditions/signal_condition.gd")
 const ESTimerCondition := preload("res://addons/godot_event_sheet/conditions/timer_condition.gd")
 const ESLifecycleCondition := preload("res://addons/godot_event_sheet/conditions/lifecycle_condition.gd")
+const ESPhysicsCondition := preload("res://addons/godot_event_sheet/conditions/physics_condition.gd")
 
 ## The EventSheet resource containing all events.
 @export var event_sheet: ESEventSheet = null
@@ -274,7 +275,10 @@ func _evaluate_events(events: Array, delta: float) -> void:
 				var cond := cond_res as ESCondition
 				if not cond:
 					continue
-				if cond.evaluate(self, delta):
+				var result := cond.evaluate(self, delta)
+				if cond.negated:
+					result = not result
+				if result:
 					conditions_pass = true
 					break
 		else:
@@ -284,7 +288,10 @@ func _evaluate_events(events: Array, delta: float) -> void:
 				var cond := cond_res as ESCondition
 				if not cond:
 					continue
-				if not cond.evaluate(self, delta):
+				var result := cond.evaluate(self, delta)
+				if cond.negated:
+					result = not result
+				if not result:
 					conditions_pass = false
 					break
 

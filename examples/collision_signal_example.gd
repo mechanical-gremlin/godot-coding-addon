@@ -1,6 +1,15 @@
 extends Node
 ## Example: Collision detection and signal communication with the Event Sheet addon.
 ##
+## NOTE: Condition and action scripts do not declare class_name, so we
+## reference them via preload() constants – the same pattern used by the
+## editor dialogs and the runtime controller.
+
+const ESCollisionCondition := preload("res://addons/godot_event_sheet/conditions/collision_condition.gd")
+const ESSignalCondition := preload("res://addons/godot_event_sheet/conditions/signal_condition.gd")
+const ESPrintAction := preload("res://addons/godot_event_sheet/actions/print_action.gd")
+const ESEmitSignalAction := preload("res://addons/godot_event_sheet/actions/emit_signal_action.gd")
+##
 ## This demonstrates how to set up collision detection and use signals to
 ## communicate between nodes — two critical requirements for game development.
 ##

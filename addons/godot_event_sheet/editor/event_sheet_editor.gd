@@ -307,7 +307,8 @@ func _create_condition_row(cond: ESCondition, event: ESEventItem, cond_index: in
 	# Summary.
 	var summary := Label.new()
 	if cond.get_script() and cond.get_script().is_tool():
-		summary.text = cond.get_summary()
+		var prefix := "NOT " if cond.negated else ""
+		summary.text = prefix + cond.get_summary()
 	else:
 		summary.text = "(unable to load condition)"
 		summary.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4))
@@ -464,7 +465,7 @@ func _on_add_event() -> void:
 
 	var dialog := AddEventDialog.create()
 	add_child(dialog)
-	dialog.popup_centered(Vector2i(700, 550))
+	dialog.popup_centered(Vector2i(800, 600))
 	dialog.confirmed.connect(func():
 		var event := _current_sheet.add_event() as ESEventItem
 		var cond: ESCondition = dialog.get_selected_condition()
@@ -489,7 +490,7 @@ func _on_sheet_name_changed(new_name: String) -> void:
 func _show_condition_dialog(event: ESEventItem) -> void:
 	var dialog := ConditionDialog.create_picker()
 	add_child(dialog)
-	dialog.popup_centered(Vector2i(500, 400))
+	dialog.popup_centered(Vector2i(650, 450))
 	dialog.confirmed.connect(func():
 		var cond: ESCondition = dialog.get_selected_condition()
 		if cond:
@@ -502,7 +503,7 @@ func _show_condition_dialog(event: ESEventItem) -> void:
 func _show_condition_edit_dialog(cond: ESCondition, event: ESEventItem, index: int) -> void:
 	var dialog := ConditionDialog.create_editor(cond)
 	add_child(dialog)
-	dialog.popup_centered(Vector2i(500, 400))
+	dialog.popup_centered(Vector2i(650, 450))
 	dialog.confirmed.connect(func():
 		_mark_resource_modified()
 		_refresh()
@@ -514,7 +515,7 @@ func _show_condition_edit_dialog(cond: ESCondition, event: ESEventItem, index: i
 func _show_action_dialog(event: ESEventItem) -> void:
 	var dialog := ActionDialog.create_picker()
 	add_child(dialog)
-	dialog.popup_centered(Vector2i(500, 400))
+	dialog.popup_centered(Vector2i(650, 450))
 	dialog.confirmed.connect(func():
 		var action: ESAction = dialog.get_selected_action()
 		if action:
@@ -527,7 +528,7 @@ func _show_action_dialog(event: ESEventItem) -> void:
 func _show_action_edit_dialog(action: ESAction, event: ESEventItem, index: int) -> void:
 	var dialog := ActionDialog.create_editor(action)
 	add_child(dialog)
-	dialog.popup_centered(Vector2i(500, 400))
+	dialog.popup_centered(Vector2i(650, 450))
 	dialog.confirmed.connect(func():
 		_mark_resource_modified()
 		_refresh()
