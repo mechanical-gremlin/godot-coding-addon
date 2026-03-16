@@ -7,8 +7,8 @@ enum PhysicsCheck {
 	IS_ON_FLOOR,    ## True when the body is touching the floor
 	IS_ON_WALL,     ## True when the body is touching a wall
 	IS_ON_CEILING,  ## True when the body is touching the ceiling
-	IS_MOVING,      ## True when the body's velocity length is greater than zero
-	IS_STOPPED,     ## True when the body's velocity is effectively zero
+	IS_MOVING,      ## True when the body's velocity length exceeds the stop threshold
+	IS_STOPPED,     ## True when the body's velocity is at or below the stop threshold
 	IS_FALLING,     ## True when the body's vertical velocity is positive (moving down)
 }
 
