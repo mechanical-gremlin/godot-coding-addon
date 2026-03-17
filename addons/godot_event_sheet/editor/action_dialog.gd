@@ -773,7 +773,7 @@ func _populate_property_dropdown(dropdown: OptionButton, custom_edit: LineEdit,
 			if node == null and _controller.get_parent():
 				node = _controller.get_parent().get_node_or_null(NodePath(node_path))
 
-	var common := PackedStringArray()
+	var common: Array = []
 	var exports := PackedStringArray()
 	if node:
 		common = PropertyHints.get_properties_for_node(node)
@@ -784,9 +784,10 @@ func _populate_property_dropdown(dropdown: OptionButton, custom_edit: LineEdit,
 	var found_in_list := false
 
 	var idx := 0
-	for p in common:
-		dropdown.add_item(p)
-		if p == current_prop:
+	for item in common:
+		dropdown.add_item(item["label"])
+		dropdown.set_item_metadata(idx, item["prop"])
+		if item["prop"] == current_prop:
 			selected_idx = idx
 			found_in_list = true
 		idx += 1
@@ -797,6 +798,7 @@ func _populate_property_dropdown(dropdown: OptionButton, custom_edit: LineEdit,
 			idx += 1
 		for p in exports:
 			dropdown.add_item(p)
+			dropdown.set_item_metadata(idx, p)
 			if p == current_prop:
 				selected_idx = idx
 				found_in_list = true
@@ -846,7 +848,12 @@ func _on_prop_dropdown_item_selected(idx: int, dropdown: OptionButton,
 		pass  # Separator — ignore.
 	else:
 		custom_edit.visible = false
-		obj.set(prop, item_text)
+		var meta = dropdown.get_item_metadata(idx)
+		if meta != null and typeof(meta) == TYPE_STRING and not (meta as String).is_empty():
+			obj.set(prop, meta as String)
+		else:
+			push_warning("EventSheet: Property dropdown item '%s' has no metadata; using display text as fallback." % item_text)
+			obj.set(prop, item_text)
 
 
 ## Walk the scene tree from the controller's owner and return node info entries.
