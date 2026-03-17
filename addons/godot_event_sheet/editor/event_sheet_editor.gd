@@ -9,6 +9,10 @@ var undo_redo: EditorUndoRedoManager = null
 var _current_controller: Node = null
 var _current_sheet: ESEventSheet = null
 
+# Rename-tracking state (editor-only).
+var _rename_connected_nodes: Array[Node] = []
+var _node_path_snapshot: Dictionary = {}  # instance_id (int) -> old path (String)
+
 # UI references.
 var _toolbar: HBoxContainer
 var _scroll: ScrollContainer
@@ -17,6 +21,10 @@ var _no_sheet_label: Label
 var _sheet_name_edit: LineEdit
 
 const _NO_SHEET_TEXT := "Select an EventController node to edit its Event Sheet.\n\nTo get started:\n1. Add an EventController node as a child of your game object\n2. Click the EventController node to open this editor\n3. Click '+ Add Event' to create your first event"
+
+# $collider is a runtime-only synthetic path injected by event_controller.gd during
+# collision callbacks; it never resolves as a real scene node, so we skip it.
+const _RUNTIME_SYNTHETIC_PATH := "$collider"
 
 # Preloaded dialog scripts.
 const ConditionDialog := preload("res://addons/godot_event_sheet/editor/condition_dialog.gd")
@@ -31,6 +39,8 @@ func _ready() -> void:
 
 ## Called by the plugin when an EventController is selected.
 func edit_controller(controller: Node) -> void:
+	if Engine.is_editor_hint():
+		_disconnect_rename_signals()
 	_current_controller = controller
 	if controller and "event_sheet" in controller:
 		_current_sheet = controller.get("event_sheet") as ESEventSheet
@@ -44,6 +54,9 @@ func edit_controller(controller: Node) -> void:
 	else:
 		_current_sheet = null
 	_refresh()
+	if Engine.is_editor_hint():
+		_connect_rename_signals()
+		_snapshot_node_paths()
 
 
 ## Build the entire editor UI programmatically.
@@ -168,6 +181,10 @@ func _refresh() -> void:
 		if event:
 			var row := _create_event_row(event, i)
 			_events_container.add_child(row)
+
+	if Engine.is_editor_hint():
+		_connect_rename_signals()
+		_snapshot_node_paths()
 
 
 ## Create a visual row for a single event.
@@ -510,6 +527,10 @@ func _create_condition_row(cond: ESCondition, event: ESEventItem, cond_index: in
 	if cond.get_script() and cond.get_script().is_tool():
 		var prefix := "NOT " if cond.negated else ""
 		summary.text = prefix + cond.get_summary()
+		if _has_stale_node_path(cond):
+			summary.text += " ⚠"
+			summary.add_theme_color_override("font_color", Color(1.0, 0.7, 0.2))
+			summary.tooltip_text = "⚠ One or more node paths could not be found. The node may have been renamed or deleted. Open this condition to update the path."
 	else:
 		summary.text = "(unable to load condition)"
 		summary.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4))
@@ -589,6 +610,10 @@ func _create_action_row(action: ESAction, event: ESEventItem, action_index: int)
 	var summary := Label.new()
 	if action.get_script() and action.get_script().is_tool():
 		summary.text = action.get_summary()
+		if _has_stale_node_path(action):
+			summary.text += " ⚠"
+			summary.add_theme_color_override("font_color", Color(1.0, 0.7, 0.2))
+			summary.tooltip_text = "⚠ One or more node paths could not be found. The node may have been renamed or deleted. Open this action to update the path."
 	else:
 		summary.text = "(unable to load action)"
 		summary.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4))
@@ -710,7 +735,7 @@ func _on_sheet_name_changed(new_name: String) -> void:
 func _show_condition_dialog(event: ESEventItem) -> void:
 	var dialog := ConditionDialog.create_picker(_current_controller)
 	add_child(dialog)
-	dialog.popup_centered(Vector2i(650, 450))
+	dialog.popup_centered(Vector2i(750, 500))
 	dialog.confirmed.connect(func():
 		var cond: ESCondition = dialog.get_selected_condition()
 		if cond:
@@ -723,7 +748,7 @@ func _show_condition_dialog(event: ESEventItem) -> void:
 func _show_condition_edit_dialog(cond: ESCondition, event: ESEventItem, index: int) -> void:
 	var dialog := ConditionDialog.create_editor(cond, _current_controller)
 	add_child(dialog)
-	dialog.popup_centered(Vector2i(650, 450))
+	dialog.popup_centered(Vector2i(750, 500))
 	dialog.confirmed.connect(func():
 		_mark_resource_modified()
 		_refresh()
@@ -735,7 +760,7 @@ func _show_condition_edit_dialog(cond: ESCondition, event: ESEventItem, index: i
 func _show_action_dialog(event: ESEventItem) -> void:
 	var dialog := ActionDialog.create_picker(_current_controller)
 	add_child(dialog)
-	dialog.popup_centered(Vector2i(650, 450))
+	dialog.popup_centered(Vector2i(750, 500))
 	dialog.confirmed.connect(func():
 		var action: ESAction = dialog.get_selected_action()
 		if action:
@@ -748,8 +773,128 @@ func _show_action_dialog(event: ESEventItem) -> void:
 func _show_action_edit_dialog(action: ESAction, event: ESEventItem, index: int) -> void:
 	var dialog := ActionDialog.create_editor(action, _current_controller)
 	add_child(dialog)
-	dialog.popup_centered(Vector2i(650, 450))
+	dialog.popup_centered(Vector2i(750, 500))
 	dialog.confirmed.connect(func():
 		_mark_resource_modified()
 		_refresh()
 	)
+
+
+# -- Stale Node Path Warning --
+
+## Returns true if any NodePath-typed property on the given resource points
+## to a node that cannot be found via _current_controller.
+func _has_stale_node_path(resource: Resource) -> bool:
+	if not _current_controller or not is_instance_valid(_current_controller):
+		return false
+	for prop in resource.get_property_list():
+		if prop["type"] == TYPE_NODE_PATH:
+			var path: NodePath = resource.get(prop["name"])
+			if path.is_empty():
+				continue
+			var path_str := str(path)
+			if path_str == _RUNTIME_SYNTHETIC_PATH:
+				continue
+			var node = _current_controller.get_node_or_null(path)
+			if node == null and _current_controller.get_parent():
+				node = _current_controller.get_parent().get_node_or_null(path)
+			if node == null:
+				return true
+	return false
+
+
+# -- Rename Tracking (editor-only) --
+
+func _connect_rename_signals() -> void:
+	_disconnect_rename_signals()
+	if not _current_controller or not is_instance_valid(_current_controller):
+		return
+	var scene_root: Node = _current_controller.owner if _current_controller.owner else _current_controller.get_parent()
+	if not scene_root:
+		return
+	_walk_and_connect(scene_root)
+
+
+func _walk_and_connect(node: Node) -> void:
+	if not node.renamed.is_connected(_on_scene_node_renamed):
+		node.renamed.connect(_on_scene_node_renamed.bind(node))
+		_rename_connected_nodes.append(node)
+	for child in node.get_children():
+		_walk_and_connect(child)
+
+
+func _disconnect_rename_signals() -> void:
+	for node in _rename_connected_nodes:
+		if is_instance_valid(node) and node.renamed.is_connected(_on_scene_node_renamed.bind(node)):
+			node.renamed.disconnect(_on_scene_node_renamed.bind(node))
+	_rename_connected_nodes.clear()
+
+
+func _snapshot_node_paths() -> void:
+	_node_path_snapshot.clear()
+	if not _current_controller or not is_instance_valid(_current_controller):
+		return
+	var scene_root: Node = _current_controller.owner if _current_controller.owner else _current_controller.get_parent()
+	if not scene_root:
+		return
+	_snapshot_walk(scene_root)
+
+
+func _snapshot_walk(node: Node) -> void:
+	if not is_instance_valid(_current_controller):
+		return
+	var path_to_node: NodePath = _current_controller.get_path_to(node)
+	_node_path_snapshot[node.get_instance_id()] = str(path_to_node)
+	for child in node.get_children():
+		_snapshot_walk(child)
+
+
+func _on_scene_node_renamed(node: Node) -> void:
+	if not _current_sheet or not _current_controller:
+		return
+	var instance_id := node.get_instance_id()
+	if not _node_path_snapshot.has(instance_id):
+		return
+	var old_path: String = _node_path_snapshot[instance_id]
+	var new_path: String = str(_current_controller.get_path_to(node))
+	if old_path == new_path:
+		return
+
+	var changed := false
+	for event_res in _current_sheet.events:
+		var event := event_res as ESEventItem
+		if event:
+			changed = _migrate_paths_in_event(event, old_path, new_path) or changed
+
+	if changed:
+		_mark_resource_modified()
+		_refresh()
+
+	# Re-snapshot after rename.
+	_snapshot_node_paths()
+
+
+func _migrate_paths_in_event(event: ESEventItem, old_path: String, new_path: String) -> bool:
+	var changed := false
+	for cond in event.conditions:
+		if _migrate_node_paths(cond, old_path, new_path):
+			changed = true
+	for action in event.actions:
+		if _migrate_node_paths(action, old_path, new_path):
+			changed = true
+	for sub_res in event.sub_events:
+		var sub := sub_res as ESEventItem
+		if sub and _migrate_paths_in_event(sub, old_path, new_path):
+			changed = true
+	return changed
+
+
+func _migrate_node_paths(resource: Resource, old_path: String, new_path: String) -> bool:
+	var changed := false
+	for prop in resource.get_property_list():
+		if prop["type"] == TYPE_NODE_PATH:
+			var current: NodePath = resource.get(prop["name"])
+			if str(current) == old_path:
+				resource.set(prop["name"], NodePath(new_path))
+				changed = true
+	return changed
