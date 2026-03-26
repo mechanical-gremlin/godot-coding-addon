@@ -11,6 +11,7 @@ A visual **Event Sheet** programming addon for Godot 4.5, designed for beginning
 - **Input Handling** — Respond to keyboard input, action presses, and held keys; UI button clicks
 - **Property Control** — Read, set, add, subtract, multiply, or toggle any node property; dynamic text with live value placeholders
 - **Movement** — Translate, set position, move toward targets or dynamic nodes, physics velocity (2D and 3D)
+- **Camera** — Camera2D and Camera3D support: follow target, zoom/FOV, screen-shake, offset
 - **Knockback** — Compute directional knockback between two nodes and push via velocity or position
 - **Timers** — Repeating and one-shot timers without writing code
 - **Animation & Audio** — Play/stop animations and sounds
@@ -82,11 +83,11 @@ Click **+ Add Event** to open the event wizard. Each event uses a simple **"When
 
 | Category | Action | Description |
 |----------|--------|-------------|
-| **Movement** | Translate | Move a node by an offset at a given speed; includes direction presets (Up/Down/Left/Right) |
-| **Movement** | Set Position | Set a node's absolute position |
-| **Movement** | Move Toward Point | Move a node toward a fixed (x, y) coordinate |
+| **Movement** | Translate | Move a node by an offset at a given speed; includes direction presets (Up/Down/Left/Right) and a Z field for 3D |
+| **Movement** | Set Position | Set a node's absolute position (X, Y, Z for 3D) |
+| **Movement** | Move Toward Point | Move a node toward a fixed coordinate (X, Y, Z for 3D) |
 | **Movement** | Move Toward Node | Move a node toward another node's live position (for chasing enemies) |
-| **Movement** | Set Velocity (Physics) | Set `CharacterBody2D.velocity` and call `move_and_slide()` for wall-colliding movement |
+| **Movement** | Set Velocity (Physics) | Set `CharacterBody2D/3D.velocity` and call `move_and_slide()` for wall-colliding movement |
 | **Movement** | Apply Knockback | Push a target node away from a source node (supports `$collider` as target) |
 | **Properties** | Set Value | Set a property to a value; supports `{../Node:prop}` placeholders for live HUD text |
 | **Properties** | Add / Subtract / Multiply | Modify a numeric property |
@@ -100,6 +101,55 @@ Click **+ Add Event** to open the event wizard. Each event uses a simple **"When
 | **Scene** | Hide Node | Make a node invisible (`visible = false`) |
 | **Audio** | Play / Stop Sound | Control AudioStreamPlayer nodes |
 | **Debug** | Print Message | Print to console (supports `{name}`, `{position}`, `{delta}` placeholders) |
+
+## 3D Game Support
+
+The Godot Event Sheet addon works with 3D projects using the same single EventController node — no separate 3D addon or controller is needed. The same "When → Then" model applies to both 2D and 3D games.
+
+### What Works in 3D
+
+| Feature | 3D Behaviour |
+|---------|-------------|
+| **Move: Translate / Set Velocity** | Uses `Vector3`; set X, Y, and **Z** (shown in Custom mode) for full 3D movement |
+| **Move: Set Position** | Sets `Vector3`; a **Z (3D)** field is shown in the action editor |
+| **Move: Move Toward Point** | Moves toward a `Vector3` target; a **Target Z (3D)** field is shown |
+| **Move: Move Toward Node** | Works with `Node3D` targets automatically |
+| **Physics: Apply Gravity** | Works with `CharacterBody3D` and plain `Node3D` |
+| **Physics conditions** | All checks (Is On Floor, Is On Wall, etc.) work with `CharacterBody3D` |
+| **Distance Check** | Measures 3D distance between `Node3D` nodes automatically |
+| **Collision** | Works with `Area3D` and `PhysicsBody3D` nodes |
+| **Rotate / Aim** | Look At Node, Set Rotation, and Rotate By all work on `Node3D` (Y-axis) |
+| **Camera: Follow Target** | Follows a `Node3D` target when a `Camera3D` is detected |
+| **Camera: Set Zoom** | Sets `Camera3D.fov` (zoom_level 1.0 → 75°; higher = narrower FOV = zoomed in) |
+| **Camera: Shake** | Uses `h_offset`/`v_offset` on `Camera3D` (no physical movement) |
+| **Camera: Reset Zoom** | Resets `Camera3D.fov` to the default 75° |
+| **Camera: Set Offset** | Sets `Camera3D.h_offset` and `v_offset` |
+| **Signals, Properties, Timers, Lifecycle, etc.** | Fully compatible with 3D nodes |
+
+### 3D Quick Start Example
+
+```
+CharacterBody3D (your 3D player)
+  ├── MeshInstance3D
+  ├── CollisionShape3D
+  └── EventController  ← Add this node
+```
+
+Typical 3D movement events:
+
+| Conditions | Actions |
+|-----------|---------|
+| Every Physics Frame + W key held | Set Velocity (X:0, Y:0, Z:-1) speed 5 on parent |
+| Every Physics Frame + S key held | Set Velocity (X:0, Y:0, Z:1) speed 5 on parent |
+| Every Physics Frame + A key held | Set Velocity (X:-1, Y:0, Z:0) speed 5 on parent |
+| Every Physics Frame + D key held | Set Velocity (X:1, Y:0, Z:0) speed 5 on parent |
+| Every Physics Frame | Apply Gravity to parent |
+
+### 3D Design Approach
+
+The add-on uses a **single EventController** for both 2D and 3D — no separate node is needed. The runtime automatically detects whether a target node is a `Node2D` or `Node3D` and applies the correct logic. This keeps the event sheet simple for students while supporting both project types.
+
+For purely 3D-specific needs (e.g., raycasting, 3D pathfinding with `NavigationAgent3D`) you can use the **Property: Set Value** action or **Signal** actions to drive built-in Godot nodes from the event sheet.
 
 ## Referencing the Collided Node with `$collider`
 

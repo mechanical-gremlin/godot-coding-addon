@@ -423,9 +423,11 @@ func build_property_fields(container: VBoxContainer, action: ESAction) -> void:
 			ESMoveAction.MoveType.SET_POSITION:
 				_add_float_field(container, "X:", action, "x")
 				_add_float_field(container, "Y:", action, "y")
+				_add_float_field(container, "Z (3D):", action, "z")
 			ESMoveAction.MoveType.MOVE_TOWARD:
 				_add_float_field(container, "Target X:", action, "x")
 				_add_float_field(container, "Target Y:", action, "y")
+				_add_float_field(container, "Target Z (3D):", action, "z")
 				_add_float_field(container, "Speed:", action, "speed")
 				_add_bool_field(container, "Use Delta Time:", action, "use_delta")
 			ESMoveAction.MoveType.MOVE_TOWARD_NODE:
@@ -534,7 +536,7 @@ func build_property_fields(container: VBoxContainer, action: ESAction) -> void:
 
 	elif action is ESCameraAction:
 		_add_node_path_field(container, "Camera Node:", action, "camera_path",
-			"Camera2D node (leave empty to auto-find)")
+			"Camera2D or Camera3D (leave empty to auto-find)")
 		match action.operation:
 			ESCameraAction.CameraOp.FOLLOW_TARGET:
 				_add_node_path_field(container, "Follow Target:", action, "follow_target_path",
@@ -841,6 +843,19 @@ func _add_direction_dropdown(container: VBoxContainer, action: ESMoveAction) -> 
 	y_spin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	y_spin.value_changed.connect(func(val: float): action.y = val)
 	xy_row.add_child(y_spin)
+
+	var z_lbl := Label.new()
+	z_lbl.text = "Z:"
+	xy_row.add_child(z_lbl)
+
+	var z_spin := SpinBox.new()
+	z_spin.min_value = -99999.0
+	z_spin.max_value = 99999.0
+	z_spin.step = 0.1
+	z_spin.value = action.z
+	z_spin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	z_spin.value_changed.connect(func(val: float): action.z = val)
+	xy_row.add_child(z_spin)
 
 	# Determine which preset matches the current x/y (if any).
 	var preset_names := DIRECTION_PRESETS.keys()

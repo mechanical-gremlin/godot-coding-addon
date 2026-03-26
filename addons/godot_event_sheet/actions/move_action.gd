@@ -23,6 +23,9 @@ enum MoveType {
 ## Y component of the movement, position, or velocity direction.
 @export var y: float = 0.0
 
+## Z component of the movement, position, or velocity direction (3D only).
+@export var z: float = 0.0
+
 ## Speed in pixels/units per second (used with TRANSLATE, MOVE_TOWARD, MOVE_TOWARD_NODE, SET_VELOCITY).
 @export var speed: float = 200.0
 
@@ -38,15 +41,23 @@ func get_summary() -> String:
 	var target := str(target_path) if not target_path.is_empty() else "parent"
 	match move_type:
 		MoveType.TRANSLATE:
+			if z != 0.0:
+				return "Move %s by (%.0f, %.0f, %.0f) at speed %.0f" % [target, x, y, z, speed]
 			return "Move %s by (%.0f, %.0f) at speed %.0f" % [target, x, y, speed]
 		MoveType.SET_POSITION:
+			if z != 0.0:
+				return "Set %s position to (%.0f, %.0f, %.0f)" % [target, x, y, z]
 			return "Set %s position to (%.0f, %.0f)" % [target, x, y]
 		MoveType.MOVE_TOWARD:
+			if z != 0.0:
+				return "Move %s toward (%.0f, %.0f, %.0f) at speed %.0f" % [target, x, y, z, speed]
 			return "Move %s toward (%.0f, %.0f) at speed %.0f" % [target, x, y, speed]
 		MoveType.MOVE_TOWARD_NODE:
 			var goal_node := str(toward_node_path) if not toward_node_path.is_empty() else "?"
 			return "Move %s toward node %s at speed %.0f" % [target, goal_node, speed]
 		MoveType.SET_VELOCITY:
+			if z != 0.0:
+				return "Set %s velocity (%.0f, %.0f, %.0f) * speed %.0f" % [target, x, y, z, speed]
 			return "Set %s velocity (%.0f, %.0f) * speed %.0f" % [target, x, y, speed]
 	return "Move"
 
@@ -108,12 +119,12 @@ func _execute_2d(node: Node2D, dt: float, controller: Node) -> void:
 func _execute_3d(node: Node3D, dt: float, controller: Node) -> void:
 	match move_type:
 		MoveType.TRANSLATE:
-			var direction := Vector3(x, y, 0).normalized()
+			var direction := Vector3(x, y, z).normalized()
 			node.position += direction * speed * dt
 		MoveType.SET_POSITION:
-			node.position = Vector3(x, y, 0)
+			node.position = Vector3(x, y, z)
 		MoveType.MOVE_TOWARD:
-			var goal := Vector3(x, y, 0)
+			var goal := Vector3(x, y, z)
 			node.position = node.position.move_toward(goal, speed * dt)
 		MoveType.MOVE_TOWARD_NODE:
 			var goal_node := _resolve_toward_node(controller)
@@ -123,7 +134,7 @@ func _execute_3d(node: Node3D, dt: float, controller: Node) -> void:
 		MoveType.SET_VELOCITY:
 			if node is CharacterBody3D:
 				var body := node as CharacterBody3D
-				var direction := Vector3(x, y, 0)
+				var direction := Vector3(x, y, z)
 				if direction.length() > 0:
 					direction = direction.normalized()
 				# When direction is zero and speed is zero the user wants
@@ -137,6 +148,8 @@ func _execute_3d(node: Node3D, dt: float, controller: Node) -> void:
 						body.velocity.x = direction.x * speed
 					if y != 0.0:
 						body.velocity.y = direction.y * speed
+					if z != 0.0:
+						body.velocity.z = direction.z * speed
 				body.move_and_slide()
 
 
