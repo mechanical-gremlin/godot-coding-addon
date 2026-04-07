@@ -67,7 +67,7 @@ func get_category() -> String:
 func evaluate(controller: Node, _delta: float) -> bool:
 	match check_type:
 		JoypadCheck.AXIS_ACTIVE:
-			var godot_axis: JoyAxis
+			var godot_axis: JoyAxis = JOY_AXIS_LEFT_X
 			match axis:
 				JoypadAxis.LEFT_X:
 					godot_axis = JOY_AXIS_LEFT_X

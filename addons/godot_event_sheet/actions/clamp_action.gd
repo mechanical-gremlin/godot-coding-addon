@@ -85,6 +85,9 @@ func _clamp_nested(target: Node, parts: PackedStringArray) -> void:
 				push_warning("EventSheet: Unknown Vector3 component '%s'" % final_prop)
 				return
 		target.set(parts[0], vec)
+	elif (current is float or current is int) and parts.size() == 2:
+		# Scalar numeric property accessed with a single dot (e.g., "obj.health").
+		target.set(parts[0], clampf(float(current), min_value, max_value))
 
 
 func _resolve_target(controller: Node) -> Node:
