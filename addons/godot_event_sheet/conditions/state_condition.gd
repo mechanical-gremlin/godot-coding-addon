@@ -6,7 +6,7 @@ extends ESCondition
 ##
 ## Common patterns:
 ##   - Only allow player input when state is "player_turn".
-##   - Trigger boss phase‑2 behaviour when state is "phase_2".
+##   - Trigger boss phase‑2 behavior when state is "phase_2".
 ##   - Show game-over UI when state is "game_over".
 ##   - Enable power-up effects only while state is "powered_up".
 
