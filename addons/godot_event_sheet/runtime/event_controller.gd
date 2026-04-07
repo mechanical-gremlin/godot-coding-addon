@@ -21,6 +21,7 @@ const ESSignalCondition := preload("res://addons/godot_event_sheet/conditions/si
 const ESTimerCondition := preload("res://addons/godot_event_sheet/conditions/timer_condition.gd")
 const ESLifecycleCondition := preload("res://addons/godot_event_sheet/conditions/lifecycle_condition.gd")
 const ESPhysicsCondition := preload("res://addons/godot_event_sheet/conditions/physics_condition.gd")
+const ESJoypadCondition := preload("res://addons/godot_event_sheet/conditions/joypad_condition.gd")
 
 ## The EventSheet resource containing all events.
 @export var event_sheet: ESEventSheet = null
@@ -366,6 +367,12 @@ func _track_event_key_states(event: ESEventItem) -> void:
 				var keycode := OS.find_keycode_from_string(cond.action_or_key)
 				if keycode != KEY_NONE:
 					set_meta("_es_prev_key_%d" % keycode, Input.is_key_pressed(keycode))
+		elif cond_res is ESJoypadCondition:
+			var cond := cond_res as ESJoypadCondition
+			if cond.check_type in [ESJoypadCondition.JoypadCheck.BUTTON_PRESSED,
+					ESJoypadCondition.JoypadCheck.BUTTON_RELEASED]:
+				var meta_key := "_es_prev_joy_%d_%d" % [cond.device_id, cond.joypad_button]
+				set_meta(meta_key, Input.is_joy_button_pressed(cond.device_id, cond.joypad_button))
 	# Recurse into sub-events.
 	for sub_res in event.sub_events:
 		var sub := sub_res as ESEventItem
