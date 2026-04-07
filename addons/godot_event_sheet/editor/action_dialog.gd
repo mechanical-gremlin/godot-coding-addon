@@ -18,6 +18,7 @@ const ESPathfindingAction := preload("res://addons/godot_event_sheet/actions/pat
 const ESRandomAction := preload("res://addons/godot_event_sheet/actions/random_action.gd")
 const ESGroupAction := preload("res://addons/godot_event_sheet/actions/group_action.gd")
 const ESStateAction := preload("res://addons/godot_event_sheet/actions/state_action.gd")
+const ESClampAction := preload("res://addons/godot_event_sheet/actions/clamp_action.gd")
 const PropertyHints := preload("res://addons/godot_event_sheet/editor/property_hints.gd")
 
 var _action_list: Tree
@@ -66,6 +67,7 @@ const ACTION_CATEGORIES := [
 			{"label": "Property: Subtract Value", "key": "prop_subtract"},
 			{"label": "Property: Multiply Value", "key": "prop_multiply"},
 			{"label": "Property: Toggle (Boolean)", "key": "prop_toggle"},
+			{"label": "Property: Clamp (Min/Max)", "key": "prop_clamp"},
 		]
 	},
 	{
@@ -171,6 +173,7 @@ const ACTION_TYPES := {
 	"Utility: Remove from Group": "group_remove",
 	"State: Set State": "state_set",
 	"State: Clear State": "state_clear",
+	"Property: Clamp (Min/Max)": "prop_clamp",
 }
 
 
@@ -404,6 +407,8 @@ func create_action_from_key(key: String) -> ESAction:
 			var a := ESStateAction.new()
 			a.operation = ESStateAction.StateOp.CLEAR
 			return a
+		"prop_clamp":
+			return ESClampAction.new()
 	return null
 
 
@@ -595,6 +600,14 @@ func build_property_fields(container: VBoxContainer, action: ESAction) -> void:
 		if action.operation == ESStateAction.StateOp.SET:
 			_add_string_field(container, "State Value:", action, "state_value",
 				"e.g., player_turn, phase_2, powered_up, game_over")
+
+	elif action is ESClampAction:
+		_add_node_path_field(container, "Target Node:", action, "target_path",
+			"Node to clamp (leave empty for parent, or $collider)")
+		_add_string_field(container, "Property Name:", action, "property_name",
+			"e.g., position.x, position.y, health, scale.x")
+		_add_float_field(container, "Min Value:", action, "min_value")
+		_add_float_field(container, "Max Value:", action, "max_value")
 
 
 # -- Field Helpers (same pattern as condition_dialog.gd) --

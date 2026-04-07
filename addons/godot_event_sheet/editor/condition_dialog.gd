@@ -17,6 +17,7 @@ const ESDistanceCondition := preload("res://addons/godot_event_sheet/conditions/
 const ESGroupCondition := preload("res://addons/godot_event_sheet/conditions/group_condition.gd")
 const ESStateCondition := preload("res://addons/godot_event_sheet/conditions/state_condition.gd")
 const ESNodeCountCondition := preload("res://addons/godot_event_sheet/conditions/node_count_condition.gd")
+const ESJoypadCondition := preload("res://addons/godot_event_sheet/conditions/joypad_condition.gd")
 const PropertyHints := preload("res://addons/godot_event_sheet/editor/property_hints.gd")
 
 var _condition_list: Tree
@@ -39,6 +40,11 @@ const CONDITION_CATEGORIES := [
 			{"label": "Input: Any Key Pressed", "key": "input_any_pressed"},
 			{"label": "Input: Any Key Released", "key": "input_any_released"},
 			{"label": "Input: Mouse Button", "key": "mouse_button"},
+			{"label": "Input: Joypad Stick", "key": "joypad_axis"},
+			{"label": "Input: Joypad Button Pressed", "key": "joypad_button_pressed"},
+			{"label": "Input: Joypad Button Released", "key": "joypad_button_released"},
+			{"label": "Input: Joypad Button Held", "key": "joypad_button_held"},
+			{"label": "Input: Joypad Connected", "key": "joypad_connected"},
 			{"label": "UI: Button Pressed", "key": "ui_button_pressed"},
 		]
 	},
@@ -134,6 +140,11 @@ const CONDITION_TYPES := {
 	"Utility: Is In Group": "group_check",
 	"Utility: Node Count in Group": "node_count",
 	"State: Check State": "state_check",
+	"Input: Joypad Stick": "joypad_axis",
+	"Input: Joypad Button Pressed": "joypad_button_pressed",
+	"Input: Joypad Button Released": "joypad_button_released",
+	"Input: Joypad Button Held": "joypad_button_held",
+	"Input: Joypad Connected": "joypad_connected",
 }
 
 
@@ -328,6 +339,26 @@ func create_condition_from_key(key: String) -> ESCondition:
 			return ESNodeCountCondition.new()
 		"state_check":
 			return ESStateCondition.new()
+		"joypad_axis":
+			var c := ESJoypadCondition.new()
+			c.check_type = ESJoypadCondition.JoypadCheck.AXIS_ACTIVE
+			return c
+		"joypad_button_pressed":
+			var c := ESJoypadCondition.new()
+			c.check_type = ESJoypadCondition.JoypadCheck.BUTTON_PRESSED
+			return c
+		"joypad_button_released":
+			var c := ESJoypadCondition.new()
+			c.check_type = ESJoypadCondition.JoypadCheck.BUTTON_RELEASED
+			return c
+		"joypad_button_held":
+			var c := ESJoypadCondition.new()
+			c.check_type = ESJoypadCondition.JoypadCheck.BUTTON_HELD
+			return c
+		"joypad_connected":
+			var c := ESJoypadCondition.new()
+			c.check_type = ESJoypadCondition.JoypadCheck.ANY_CONNECTED
+			return c
 	return null
 
 
@@ -442,6 +473,22 @@ func build_property_fields(container: VBoxContainer, condition: ESCondition) -> 
 			["== (Equal)", "!= (Not Equal)"])
 		_add_string_field(container, "State Value:", condition, "compare_value",
 			"e.g., player_turn, phase_2, powered_up, game_over")
+
+	elif condition is ESJoypadCondition:
+		_add_enum_field(container, "Check Type:", condition, "check_type",
+			["Stick/Axis Active", "Button Pressed", "Button Released",
+			 "Button Held", "Any Joypad Connected"])
+		if condition.check_type == ESJoypadCondition.JoypadCheck.AXIS_ACTIVE:
+			_add_enum_field(container, "Axis:", condition, "axis",
+				["Left Stick X", "Left Stick Y", "Right Stick X",
+				 "Right Stick Y", "Left Trigger", "Right Trigger"])
+			_add_float_field(container, "Threshold (0–1):", condition, "axis_threshold")
+			_add_bool_field(container, "Positive Direction (+/right/down):", condition, "positive_direction")
+		if condition.check_type in [ESJoypadCondition.JoypadCheck.BUTTON_PRESSED,
+				ESJoypadCondition.JoypadCheck.BUTTON_RELEASED,
+				ESJoypadCondition.JoypadCheck.BUTTON_HELD]:
+			_add_int_field(container, "Button Index (0=A, 1=B, ...):", condition, "joypad_button")
+		_add_int_field(container, "Device ID (0=first):", condition, "device_id")
 
 
 ## Helper: add a string input field.

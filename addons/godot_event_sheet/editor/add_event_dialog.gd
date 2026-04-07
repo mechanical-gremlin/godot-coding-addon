@@ -15,6 +15,11 @@ const TRIGGER_CATEGORIES := [
 			{"label": "When any key is pressed", "key": "input_any_pressed"},
 			{"label": "When any key is released", "key": "input_any_released"},
 			{"label": "When a UI button is clicked", "key": "ui_button_pressed"},
+			{"label": "When a joypad stick is pushed", "key": "joypad_axis"},
+			{"label": "When a joypad button is pressed", "key": "joypad_button_pressed"},
+			{"label": "When a joypad button is released", "key": "joypad_button_released"},
+			{"label": "While a joypad button is held", "key": "joypad_button_held"},
+			{"label": "When a joypad is connected", "key": "joypad_connected"},
 		]
 	},
 	{
@@ -99,6 +104,7 @@ const REACTION_CATEGORIES := [
 			{"label": "Subtract from a property", "key": "prop_subtract"},
 			{"label": "Multiply a property", "key": "prop_multiply"},
 			{"label": "Toggle a property (on/off)", "key": "prop_toggle"},
+			{"label": "Clamp a property (min/max)", "key": "prop_clamp"},
 		]
 	},
 	{
