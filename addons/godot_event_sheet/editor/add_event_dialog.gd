@@ -60,6 +60,21 @@ const TRIGGER_CATEGORIES := [
 			{"label": "When a timer fires (once)", "key": "timer_oneshot"},
 		]
 	},
+	{
+		"label": "🎲 Utility",
+		"items": [
+			{"label": "When a random chance succeeds", "key": "random_chance"},
+			{"label": "When the distance between nodes matches", "key": "distance_check"},
+			{"label": "When a node is in a group", "key": "group_check"},
+			{"label": "When the count of nodes in a group matches", "key": "node_count"},
+		]
+	},
+	{
+		"label": "🔀 State",
+		"items": [
+			{"label": "When the game state matches a value", "key": "state_check"},
+		]
+	},
 ]
 
 # Categorized reaction types.
@@ -115,6 +130,13 @@ const REACTION_CATEGORIES := [
 		"label": "🐛 Debug",
 		"items": [
 			{"label": "Print a debug message", "key": "debug_print"},
+		]
+	},
+	{
+		"label": "🔀 State",
+		"items": [
+			{"label": "Set a game state", "key": "state_set"},
+			{"label": "Clear a game state", "key": "state_clear"},
 		]
 	},
 ]

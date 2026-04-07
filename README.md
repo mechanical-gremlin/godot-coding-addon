@@ -15,6 +15,8 @@ A visual **Event Sheet** programming addon for Godot 4.5, designed for beginning
 - **Timers** — Repeating and one-shot timers without writing code
 - **Animation & Audio** — Play/stop animations and sounds
 - **Scene Management** — Instantiate scenes (with optional Marker2D spawn point), destroy nodes, change scenes, show/hide nodes
+- **Game State Management** — Set, check, and clear named states on any node for turn-based games, boss phases, power-up tracking, and game flow control
+- **Node Counting** — Check how many nodes belong to a group for level-complete, wave-clear, and game-over detection
 - **Debug Printing** — Print messages with variable placeholders for easy debugging
 - **Collider Reference** — Use `$collider` in any target field to reference the node from the last collision
 
@@ -77,6 +79,8 @@ Click **+ Add Event** to open the event wizard. Each event uses a simple **"When
 | **Lifecycle** | On Ready | Triggers once when the scene loads |
 | **Lifecycle** | Every Frame | Triggers every frame (like `_process`) |
 | **Lifecycle** | Every Physics Frame | Triggers every physics frame (like `_physics_process`) |
+| **State** | Check State | Checks if a named state on a node equals (or doesn't equal) a given value — for turn-based games, boss phases, game flow |
+| **Utility** | Node Count in Group | Checks the count of nodes in a group (==, !=, >, <, >=, <=) — for level-complete, wave-clear, game-over detection |
 
 ## Available Actions
 
@@ -99,6 +103,8 @@ Click **+ Add Event** to open the event wizard. Each event uses a simple **"When
 | **Scene** | Show Node | Make a node visible (`visible = true`) |
 | **Scene** | Hide Node | Make a node invisible (`visible = false`) |
 | **Audio** | Play / Stop Sound | Control AudioStreamPlayer nodes |
+| **State** | Set State | Assign a named state value to a node (e.g., "player_turn", "phase_2", "game_over") |
+| **State** | Clear State | Remove a named state from a node |
 | **Debug** | Print Message | Print to console (supports `{name}`, `{position}`, `{delta}` placeholders) |
 
 ## Referencing the Collided Node with `$collider`
@@ -156,6 +162,55 @@ The addon connects to Godot's collision system automatically:
 3. Optionally filter by **group** (e.g., only trigger for nodes in the "enemies" group)
 4. The EventController automatically connects the correct signals at runtime
 
+## Game State Management
+
+The **State** action and condition let you manage game states without code. States are stored as named metadata on any node, so a single node can track multiple independent states.
+
+### Setting a State
+Use the **Set State** action. Specify:
+- **Target Node** — The node to store the state on (leave empty for parent)
+- **State Name** — A key name like `"state"`, `"phase"`, or `"mode"` (multiple states can coexist)
+- **State Value** — The value to assign, e.g., `"player_turn"`, `"phase_2"`, `"game_over"`
+
+### Checking a State
+Use the **Check State** condition. It returns true when the node's current state matches (or doesn't match) the specified value.
+
+### Example: Turn-Based Combat
+```
+# On the GameManager's EventController:
+Event: "Start Player Turn"
+  Condition: Lifecycle - On Ready
+  Action: State - Set "turn" = "player" on ../GameManager
+
+Event: "Player Attacks"
+  Condition: State "turn" on ../GameManager == "player" + Input: Key Pressed "Space"
+  Action: Property - Subtract 10 from ../Enemy:health
+  Action: State - Set "turn" = "enemy" on ../GameManager
+
+Event: "Enemy Attacks"
+  Condition: State "turn" on ../GameManager == "enemy" + Timer: One-Shot 1s
+  Action: Property - Subtract 5 from ../Player:health
+  Action: State - Set "turn" = "player" on ../GameManager
+```
+
+### Example: Boss Phases
+```
+Event: "Enter Phase 2"
+  Condition: Property ../Boss:health < 50
+  Action: State - Set "phase" = "phase_2" on ../Boss
+
+Event: "Phase 2 Attack Pattern"
+  Condition: State "phase" on ../Boss == "phase_2" + Every Frame
+  Action: Move Toward Node ../Player at speed 400
+```
+
+### Example: Level Complete (Node Count)
+```
+Event: "All Bricks Destroyed"
+  Condition: Node Count in Group "bricks" == 0
+  Action: Scene - Change Scene to res://scenes/win_screen.tscn
+```
+
 ## Project Structure
 
 ```
@@ -174,7 +229,9 @@ addons/godot_event_sheet/
 │   ├── signal_condition.gd
 │   ├── property_condition.gd
 │   ├── timer_condition.gd
-│   └── lifecycle_condition.gd
+│   ├── lifecycle_condition.gd
+│   ├── state_condition.gd
+│   └── node_count_condition.gd
 ├── actions/                # Action implementations
 │   ├── move_action.gd
 │   ├── knockback_action.gd
@@ -183,6 +240,7 @@ addons/godot_event_sheet/
 │   ├── animation_action.gd
 │   ├── scene_action.gd
 │   ├── sound_action.gd
+│   ├── state_action.gd
 │   └── print_action.gd
 ├── runtime/
 │   └── event_controller.gd # Runtime event processor node

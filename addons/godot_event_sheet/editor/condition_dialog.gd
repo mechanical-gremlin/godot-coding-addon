@@ -15,6 +15,8 @@ const ESMouseCondition := preload("res://addons/godot_event_sheet/conditions/mou
 const ESRandomCondition := preload("res://addons/godot_event_sheet/conditions/random_condition.gd")
 const ESDistanceCondition := preload("res://addons/godot_event_sheet/conditions/distance_condition.gd")
 const ESGroupCondition := preload("res://addons/godot_event_sheet/conditions/group_condition.gd")
+const ESStateCondition := preload("res://addons/godot_event_sheet/conditions/state_condition.gd")
+const ESNodeCountCondition := preload("res://addons/godot_event_sheet/conditions/node_count_condition.gd")
 const PropertyHints := preload("res://addons/godot_event_sheet/editor/property_hints.gd")
 
 var _condition_list: Tree
@@ -89,6 +91,13 @@ const CONDITION_CATEGORIES := [
 			{"label": "Utility: Random Chance", "key": "random_chance"},
 			{"label": "Utility: Distance Check", "key": "distance_check"},
 			{"label": "Utility: Is In Group", "key": "group_check"},
+			{"label": "Utility: Node Count in Group", "key": "node_count"},
+		]
+	},
+	{
+		"label": "🔀 State",
+		"items": [
+			{"label": "State: Check State", "key": "state_check"},
 		]
 	},
 ]
@@ -123,6 +132,8 @@ const CONDITION_TYPES := {
 	"Utility: Random Chance": "random_chance",
 	"Utility: Distance Check": "distance_check",
 	"Utility: Is In Group": "group_check",
+	"Utility: Node Count in Group": "node_count",
+	"State: Check State": "state_check",
 }
 
 
@@ -313,6 +324,10 @@ func create_condition_from_key(key: String) -> ESCondition:
 			return ESDistanceCondition.new()
 		"group_check":
 			return ESGroupCondition.new()
+		"node_count":
+			return ESNodeCountCondition.new()
+		"state_check":
+			return ESStateCondition.new()
 	return null
 
 
@@ -410,6 +425,23 @@ func build_property_fields(container: VBoxContainer, condition: ESCondition) -> 
 			"Node to check (leave empty for parent, or $collider)")
 		_add_string_field(container, "Group Name:", condition, "group_name",
 			"e.g., enemies, power_ups, coins")
+
+	elif condition is ESNodeCountCondition:
+		_add_string_field(container, "Group Name:", condition, "group_name",
+			"Group to count nodes in (e.g., bricks, enemies, coins)")
+		_add_enum_field(container, "Comparison:", condition, "compare_op",
+			["== (Equal)", "!= (Not Equal)", "> (Greater)", "< (Less)", ">= (Greater/Equal)", "<= (Less/Equal)"])
+		_add_int_field(container, "Count Value:", condition, "compare_value")
+
+	elif condition is ESStateCondition:
+		_add_node_path_field(container, "Node:", condition, "node_path",
+			"Node to check state on (leave empty for parent)")
+		_add_string_field(container, "State Name:", condition, "state_name",
+			"Metadata key (must match the State action's state_name)")
+		_add_enum_field(container, "Comparison:", condition, "compare_op",
+			["== (Equal)", "!= (Not Equal)"])
+		_add_string_field(container, "State Value:", condition, "compare_value",
+			"e.g., player_turn, phase_2, powered_up, game_over")
 
 
 ## Helper: add a string input field.
@@ -553,6 +585,29 @@ func _add_float_field(container: VBoxContainer, label_text: String, obj: Object,
 	spin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	spin.value_changed.connect(func(val: float):
 		obj.set(prop, val)
+	)
+	hbox.add_child(spin)
+
+
+## Helper: add an integer spin-box field.
+func _add_int_field(container: VBoxContainer, label_text: String, obj: Object,
+		prop: String) -> void:
+	var hbox := HBoxContainer.new()
+	container.add_child(hbox)
+
+	var label := Label.new()
+	label.text = label_text
+	label.custom_minimum_size.x = 150
+	hbox.add_child(label)
+
+	var spin := SpinBox.new()
+	spin.min_value = 0
+	spin.max_value = 9999
+	spin.step = 1
+	spin.value = obj.get(prop)
+	spin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	spin.value_changed.connect(func(val: float):
+		obj.set(prop, int(val))
 	)
 	hbox.add_child(spin)
 
