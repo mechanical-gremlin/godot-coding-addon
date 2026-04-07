@@ -17,6 +17,7 @@ const ESCameraAction := preload("res://addons/godot_event_sheet/actions/camera_a
 const ESPathfindingAction := preload("res://addons/godot_event_sheet/actions/pathfinding_action.gd")
 const ESRandomAction := preload("res://addons/godot_event_sheet/actions/random_action.gd")
 const ESGroupAction := preload("res://addons/godot_event_sheet/actions/group_action.gd")
+const ESStateAction := preload("res://addons/godot_event_sheet/actions/state_action.gd")
 const PropertyHints := preload("res://addons/godot_event_sheet/editor/property_hints.gd")
 
 var _action_list: Tree
@@ -120,6 +121,13 @@ const ACTION_CATEGORIES := [
 			{"label": "Utility: Remove from Group", "key": "group_remove"},
 		]
 	},
+	{
+		"label": "🔀 State",
+		"items": [
+			{"label": "State: Set State", "key": "state_set"},
+			{"label": "State: Clear State", "key": "state_clear"},
+		]
+	},
 ]
 
 # Flat map kept for backward compat (used by add_event_dialog key lookup).
@@ -161,6 +169,8 @@ const ACTION_TYPES := {
 	"Utility: Random Position": "random_position",
 	"Utility: Add to Group": "group_add",
 	"Utility: Remove from Group": "group_remove",
+	"State: Set State": "state_set",
+	"State: Clear State": "state_clear",
 }
 
 
@@ -386,6 +396,14 @@ func create_action_from_key(key: String) -> ESAction:
 			var a := ESGroupAction.new()
 			a.operation = ESGroupAction.GroupOp.REMOVE_FROM_GROUP
 			return a
+		"state_set":
+			var a := ESStateAction.new()
+			a.operation = ESStateAction.StateOp.SET
+			return a
+		"state_clear":
+			var a := ESStateAction.new()
+			a.operation = ESStateAction.StateOp.CLEAR
+			return a
 	return null
 
 
@@ -568,6 +586,15 @@ func build_property_fields(container: VBoxContainer, action: ESAction) -> void:
 			"Node to add/remove (leave empty for parent, or $collider)")
 		_add_string_field(container, "Group Name:", action, "group_name",
 			"e.g., enemies, power_ups, active")
+
+	elif action is ESStateAction:
+		_add_node_path_field(container, "Target Node:", action, "target_path",
+			"Node to set state on (leave empty for parent)")
+		_add_string_field(container, "State Name:", action, "state_name",
+			"Metadata key for the state (e.g., state, phase, mode)")
+		if action.operation == ESStateAction.StateOp.SET:
+			_add_string_field(container, "State Value:", action, "state_value",
+				"e.g., player_turn, phase_2, powered_up, game_over")
 
 
 # -- Field Helpers (same pattern as condition_dialog.gd) --
