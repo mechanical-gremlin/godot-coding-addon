@@ -20,7 +20,7 @@ var _events_container: VBoxContainer
 var _no_sheet_label: Label
 var _sheet_name_edit: LineEdit
 
-const _NO_SHEET_TEXT := "Select an EventController node to edit its Event Sheet.\n\nTo get started:\n1. Add an EventController node as a child of your game object\n2. Click the EventController node to open this editor\n3. Click '+ Add Event' to create your first event"
+const _NO_SHEET_TEXT := "Select an EventController node to edit its Event Sheet.\n\nTo get started:\n1. Add an EventController node as a child of your game object\n2. Click the EventController node to open this editor\n3. Click '+ Add Lifecycle Event' to create your first event"
 
 # $collider is a runtime-only synthetic path injected by event_controller.gd during
 # collision callbacks; it never resolves as a real scene node, so we skip it.
@@ -30,6 +30,8 @@ const _RUNTIME_SYNTHETIC_PATH := "$collider"
 const ConditionDialog := preload("res://addons/godot_event_sheet/editor/condition_dialog.gd")
 const ActionDialog := preload("res://addons/godot_event_sheet/editor/action_dialog.gd")
 const AddEventDialog := preload("res://addons/godot_event_sheet/editor/add_event_dialog.gd")
+const AddLifecycleDialog := preload("res://addons/godot_event_sheet/editor/add_lifecycle_dialog.gd")
+const ESLifecycleCondition := preload("res://addons/godot_event_sheet/conditions/lifecycle_condition.gd")
 
 
 func _ready() -> void:
@@ -117,10 +119,10 @@ func _build_ui() -> void:
 	)
 	_toolbar.add_child(expand_all_btn)
 
-	# Add Event button.
+	# Add Lifecycle Event button.
 	var add_event_btn := Button.new()
-	add_event_btn.text = "+ Add Event"
-	add_event_btn.tooltip_text = "Add a new event to the sheet"
+	add_event_btn.text = "+ Add Lifecycle Event"
+	add_event_btn.tooltip_text = "Add a new lifecycle block (_ready, _process, _physics_process)"
 	add_event_btn.pressed.connect(_on_add_event)
 	_toolbar.add_child(add_event_btn)
 
@@ -171,7 +173,14 @@ func _refresh() -> void:
 	# Build event rows.
 	if _current_sheet.events.size() == 0:
 		var empty_label := Label.new()
-		empty_label.text = "No events yet. Click '+ Add Event' above to create your first event!\n\nEvents are simple: WHEN something happens → THEN do something."
+		empty_label.text = (
+			"No events yet. Click '+ Add Lifecycle Event' above to get started!\n\n"
+			+ "Every event lives inside a lifecycle block — just like GDScript:\n"
+			+ "  • _ready()  →  runs once on game start\n"
+			+ "  • _process(delta)  →  runs every frame\n"
+			+ "  • _physics_process(delta)  →  runs every physics step\n\n"
+			+ "Inside each block, add sub-events with conditions (WHEN) and actions (THEN)."
+		)
 		empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		empty_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		empty_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
@@ -200,10 +209,31 @@ func _create_event_row(event: ESEventItem, index: int) -> PanelContainer:
 	style.content_margin_right = 8
 	style.content_margin_top = 6
 	style.content_margin_bottom = 6
-	# Block events get a blue left-border accent.
-	if event.is_block:
-		style.border_width_left = 4
-		style.border_color = Color(0.3, 0.6, 1.0)
+
+	# Detect lifecycle type for visual styling.
+	var lifecycle_func_name := ""
+	var lifecycle_type := -1
+	for cond_res in event.conditions:
+		if cond_res is ESLifecycleCondition:
+			var lc := cond_res as ESLifecycleCondition
+			lifecycle_type = lc.lifecycle_type
+			break
+
+	# Apply a coloured left border based on lifecycle type; fall back to blue for
+	# non-lifecycle blocks so old-style events still look reasonable.
+	style.border_width_left = 4
+	if lifecycle_type == ESLifecycleCondition.LifecycleType.READY:
+		style.border_color = Color(1.0, 0.65, 0.1)   # orange
+		lifecycle_func_name = "func _ready():"
+	elif lifecycle_type == ESLifecycleCondition.LifecycleType.PROCESS:
+		style.border_color = Color(0.2, 0.85, 0.4)   # green
+		lifecycle_func_name = "func _process(delta):"
+	elif lifecycle_type == ESLifecycleCondition.LifecycleType.PHYSICS_PROCESS:
+		style.border_color = Color(0.6, 0.3, 1.0)    # purple
+		lifecycle_func_name = "func _physics_process(delta):"
+	elif event.is_block:
+		style.border_color = Color(0.3, 0.6, 1.0)    # blue fallback for old blocks
+
 	panel.add_theme_stylebox_override("panel", style)
 
 	var main_vbox := VBoxContainer.new()
@@ -223,6 +253,20 @@ func _create_event_row(event: ESEventItem, index: int) -> PanelContainer:
 		_mark_resource_modified()
 	)
 	header.add_child(enabled_check)
+
+	# GDScript function subtitle (shown when a lifecycle condition is present).
+	if lifecycle_func_name != "":
+		var func_label := Label.new()
+		func_label.text = lifecycle_func_name
+		func_label.add_theme_font_size_override("font_size", 13)
+		match lifecycle_type:
+			ESLifecycleCondition.LifecycleType.READY:
+				func_label.add_theme_color_override("font_color", Color(1.0, 0.75, 0.3))
+			ESLifecycleCondition.LifecycleType.PROCESS:
+				func_label.add_theme_color_override("font_color", Color(0.4, 1.0, 0.6))
+			ESLifecycleCondition.LifecycleType.PHYSICS_PROCESS:
+				func_label.add_theme_color_override("font_color", Color(0.75, 0.55, 1.0))
+		header.add_child(func_label)
 
 	# Event name.
 	var name_edit := LineEdit.new()
@@ -277,20 +321,21 @@ func _create_event_row(event: ESEventItem, index: int) -> PanelContainer:
 	)
 	header.add_child(collapse_btn)
 
-	# Block toggle button.
-	var block_btn := Button.new()
-	if event.is_block:
-		block_btn.text = "⬛ Unblock"
-		block_btn.tooltip_text = "Remove block/container mode"
-	else:
-		block_btn.text = "⬡ Block"
-		block_btn.tooltip_text = "Make this event a block/container with sub-events"
-	block_btn.pressed.connect(func():
-		event.is_block = not event.is_block
-		_mark_resource_modified()
-		_refresh()
-	)
-	header.add_child(block_btn)
+	# Block toggle button — hidden for lifecycle events (they are always blocks).
+	if lifecycle_type == -1:
+		var block_btn := Button.new()
+		if event.is_block:
+			block_btn.text = "⬛ Unblock"
+			block_btn.tooltip_text = "Remove block/container mode"
+		else:
+			block_btn.text = "⬡ Block"
+			block_btn.tooltip_text = "Make this event a block/container with sub-events"
+		block_btn.pressed.connect(func():
+			event.is_block = not event.is_block
+			_mark_resource_modified()
+			_refresh()
+		)
+		header.add_child(block_btn)
 
 	# Delete button.
 	var delete_btn := Button.new()
@@ -321,23 +366,43 @@ func _create_event_row(event: ESEventItem, index: int) -> PanelContainer:
 		return panel
 
 	# -- Conditions & Actions columns --
-	var columns := HBoxContainer.new()
-	columns.add_theme_constant_override("separation", 12)
-	main_vbox.add_child(columns)
+	# For lifecycle events the condition is decorative (always true), so we show a
+	# compact read-only header row instead of the full conditions column.
+	if lifecycle_type != -1:
+		# Show a slim read-only lifecycle chip instead of the full condition editor.
+		var lc_bar := HBoxContainer.new()
+		lc_bar.add_theme_constant_override("separation", 6)
+		main_vbox.add_child(lc_bar)
+		var lc_icon := Label.new()
+		lc_icon.text = "⏱ Lifecycle: "
+		lc_icon.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+		lc_bar.add_child(lc_icon)
+		var lc_val := Label.new()
+		lc_val.text = lifecycle_func_name
+		match lifecycle_type:
+			ESLifecycleCondition.LifecycleType.READY:
+				lc_val.add_theme_color_override("font_color", Color(1.0, 0.75, 0.3))
+			ESLifecycleCondition.LifecycleType.PROCESS:
+				lc_val.add_theme_color_override("font_color", Color(0.4, 1.0, 0.6))
+			ESLifecycleCondition.LifecycleType.PHYSICS_PROCESS:
+				lc_val.add_theme_color_override("font_color", Color(0.75, 0.55, 1.0))
+		lc_bar.add_child(lc_val)
+	else:
+		# Non-lifecycle event: show full condition/action columns (backward compat).
+		var columns := HBoxContainer.new()
+		columns.add_theme_constant_override("separation", 12)
+		main_vbox.add_child(columns)
 
-	# Conditions column.
-	var cond_column := _create_conditions_column(event, index)
-	cond_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	columns.add_child(cond_column)
+		var cond_column := _create_conditions_column(event, index)
+		cond_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		columns.add_child(cond_column)
 
-	# Vertical separator.
-	var vsep := VSeparator.new()
-	columns.add_child(vsep)
+		var vsep := VSeparator.new()
+		columns.add_child(vsep)
 
-	# Actions column.
-	var action_column := _create_actions_column(event, index)
-	action_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	columns.add_child(action_column)
+		var action_column := _create_actions_column(event, index)
+		action_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		columns.add_child(action_column)
 
 	# -- Sub-events section (only visible when is_block) --
 	if event.is_block:
@@ -361,7 +426,7 @@ func _create_event_row(event: ESEventItem, index: int) -> PanelContainer:
 		# Add Sub-Event button.
 		var add_sub_btn := Button.new()
 		add_sub_btn.text = "↳ + Add Sub-Event"
-		add_sub_btn.tooltip_text = "Add a sub-event that runs when this block's conditions pass"
+		add_sub_btn.tooltip_text = "Add a sub-event with conditions and actions inside this lifecycle block"
 		add_sub_btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		add_sub_btn.pressed.connect(func(): _on_add_sub_event(event))
 		sub_vbox.add_child(add_sub_btn)
@@ -689,24 +754,40 @@ func _on_add_event() -> void:
 	if not _current_sheet:
 		return
 
-	var dialog := AddEventDialog.create(_current_controller)
+	var dialog := AddLifecycleDialog.create()
 	add_child(dialog)
-	dialog.popup_centered(Vector2i(800, 600))
+	dialog.popup_centered(Vector2i(520, 380))
 	dialog.confirmed.connect(func():
+		var key: String = dialog.get_selected_key()
+		if key.is_empty():
+			return
+		# Create the lifecycle condition directly — no helper object needed.
+		var lc_cond := ESLifecycleCondition.new()
+		match key:
+			"lifecycle_ready":
+				lc_cond.lifecycle_type = ESLifecycleCondition.LifecycleType.READY
+			"lifecycle_process":
+				lc_cond.lifecycle_type = ESLifecycleCondition.LifecycleType.PROCESS
+			"lifecycle_physics":
+				lc_cond.lifecycle_type = ESLifecycleCondition.LifecycleType.PHYSICS_PROCESS
 		var event := _current_sheet.add_event() as ESEventItem
-		var cond: ESCondition = dialog.get_selected_condition()
-		var action: ESAction = dialog.get_selected_action()
-		if cond:
-			event.add_condition(cond)
-		if action:
-			event.add_action(action)
+		# Default name from the lifecycle type label.
+		match key:
+			"lifecycle_ready":
+				event.event_name = "_ready()"
+			"lifecycle_process":
+				event.event_name = "_process(delta)"
+			"lifecycle_physics":
+				event.event_name = "_physics_process(delta)"
+		event.is_block = true
+		event.add_condition(lc_cond)
 		_mark_resource_modified()
 		_refresh()
 	)
 
 
 func _on_add_sub_event(parent_event: ESEventItem) -> void:
-	var dialog := AddEventDialog.create(_current_controller)
+	var dialog := AddEventDialog.create(_current_controller, true)
 	add_child(dialog)
 	dialog.popup_centered(Vector2i(800, 600))
 	dialog.confirmed.connect(func():
