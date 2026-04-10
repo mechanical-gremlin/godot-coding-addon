@@ -160,6 +160,9 @@ var _selected_action: ESAction = null
 ## Reference to the current EventController used by node pickers in sub-dialogs.
 var _controller: Node = null
 
+## When true, the Lifecycle trigger category is hidden (lifecycle events must be top-level).
+var _is_sub_event: bool = false
+
 # Helpers kept alive so their UI callbacks (which may reference self) remain valid.
 var _cond_helper = null
 var _action_helper = null
@@ -170,10 +173,12 @@ const ActionDialog := preload("res://addons/godot_event_sheet/editor/action_dial
 
 
 ## Create and return a new "Add Event" dialog ready to show.
-static func create(controller: Node = null) -> ConfirmationDialog:
+## Pass is_sub_event=true when adding sub-events so lifecycle triggers are hidden.
+static func create(controller: Node = null, is_sub_event: bool = false) -> ConfirmationDialog:
 	var dialog := preload("res://addons/godot_event_sheet/editor/add_event_dialog.gd").new()
-	dialog.title = "Add New Event"
+	dialog.title = "Add Sub-Event" if is_sub_event else "Add New Event"
 	dialog._controller = controller
+	dialog._is_sub_event = is_sub_event
 	dialog.ok_button_text = "Create Event"
 	dialog._build_ui()
 	return dialog
@@ -221,6 +226,9 @@ func _build_ui() -> void:
 	_trigger_item_to_key.clear()
 	var trigger_root := _trigger_list.create_item()
 	for cat in TRIGGER_CATEGORIES:
+		# Lifecycle triggers are only valid at the top level — hide them in sub-events.
+		if _is_sub_event and cat["label"] == "⏱ Lifecycle":
+			continue
 		var cat_item := _trigger_list.create_item(trigger_root)
 		cat_item.set_text(0, cat["label"])
 		cat_item.set_selectable(0, false)

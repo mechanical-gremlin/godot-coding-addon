@@ -91,6 +91,10 @@ func _setup_custom_signals() -> void:
 
 
 ## Sort events into categories based on their conditions.
+## Expected structure (lifecycle-first): each top-level event is a lifecycle block
+## (_ready / _process / _physics_process) containing sub-events with the real logic.
+## Legacy flat events (non-block, no lifecycle condition) still work and are treated
+## as process-category events for backward compatibility.
 func _categorize_events() -> void:
 	var sheet := event_sheet as ESEventSheet
 	if not sheet.enabled:
