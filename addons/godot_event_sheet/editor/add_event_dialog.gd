@@ -25,9 +25,9 @@ const TRIGGER_CATEGORIES := [
 	{
 		"label": "⏱ Lifecycle",
 		"items": [
-			{"label": "Every frame (continuous)", "key": "lifecycle_process"},
-			{"label": "Every physics frame", "key": "lifecycle_physics"},
-			{"label": "On game start (once)", "key": "lifecycle_ready"},
+			{"label": "Every Frame (continuous)", "key": "lifecycle_process"},
+			{"label": "Every Physics Step", "key": "lifecycle_physics"},
+			{"label": "On Start of Scene (once)", "key": "lifecycle_ready"},
 		]
 	},
 	{

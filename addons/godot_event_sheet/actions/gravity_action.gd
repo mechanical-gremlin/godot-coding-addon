@@ -2,7 +2,7 @@
 class_name ESGravityAction
 extends ESAction
 ## Action that applies gravity to a CharacterBody2D/3D or any Node2D/3D.
-## Use this with "Every Physics Frame" to simulate platformer-style gravity.
+## Use this with "Every Physics Step" to simulate platformer-style gravity.
 ##
 ## For CharacterBody2D/3D nodes the action modifies velocity.y and
 ## optionally calls move_and_slide().  For plain Node2D/3D nodes it
