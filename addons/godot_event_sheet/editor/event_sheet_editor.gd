@@ -761,12 +761,15 @@ func _on_add_event() -> void:
 		var key: String = dialog.get_selected_key()
 		if key.is_empty():
 			return
-		# Create the lifecycle condition from the key using ConditionDialog's factory.
-		var cond_helper := ConditionDialog.new()
-		var lc_cond: ESCondition = cond_helper.create_condition_from_key(key)
-		cond_helper.queue_free()
-		if not lc_cond:
-			return
+		# Create the lifecycle condition directly — no helper object needed.
+		var lc_cond := ESLifecycleCondition.new()
+		match key:
+			"lifecycle_ready":
+				lc_cond.lifecycle_type = ESLifecycleCondition.LifecycleType.READY
+			"lifecycle_process":
+				lc_cond.lifecycle_type = ESLifecycleCondition.LifecycleType.PROCESS
+			"lifecycle_physics":
+				lc_cond.lifecycle_type = ESLifecycleCondition.LifecycleType.PHYSICS_PROCESS
 		var event := _current_sheet.add_event() as ESEventItem
 		# Default name from the lifecycle type label.
 		match key:
