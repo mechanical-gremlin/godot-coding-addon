@@ -1,29 +1,30 @@
 @tool
 extends ConfirmationDialog
-## Dialog for choosing which Godot lifecycle function a new top-level event maps to.
+## Dialog for choosing which Godot lifecycle event a new top-level event maps to.
 ## Students pick one lifecycle hook, then add their conditions and actions as sub-events.
-## This mirrors the structure of a GDScript file (_ready, _process, _physics_process).
 
 const _LIFECYCLE_OPTIONS := [
 	{
-		"label": "🟢  _ready()  —  On game start (runs once)",
+		"label": "🟢  On Start of Scene (runs once)",
 		"key": "lifecycle_ready",
-		"hint": "Like _ready() in GDScript. Code here runs once when the scene first loads.",
+		"hint": "Runs once when the scene first loads. Use for setup and initialization.",
 	},
 	{
-		"label": "🔵  _process(delta)  —  Every frame (continuous)",
+		"label": "🔵  Every Frame (continuous)",
 		"key": "lifecycle_process",
-		"hint": "Like _process(delta) in GDScript. Code here runs every frame — great for input and movement.",
+		"hint": "Runs every frame continuously. Great for input, movement, and game logic.",
 	},
 	{
-		"label": "🟣  _physics_process(delta)  —  Every physics frame",
+		"label": "🟣  Every Physics Step",
 		"key": "lifecycle_physics",
-		"hint": "Like _physics_process(delta) in GDScript. Code here runs every physics step — use for physics bodies.",
+		"hint": "Runs at a fixed rate for physics. Use for physics bodies and collisions.",
 	},
 ]
 
 var _selected_key: String = ""
 var _hint_label: Label
+var _item_list: ItemList
+var _item_keys: Array[String] = []
 
 
 ## Create and return a ready-to-show lifecycle dialog.
@@ -43,56 +44,44 @@ func get_selected_key() -> String:
 
 ## Build the dialog layout.
 func _build_ui() -> void:
-	min_size = Vector2i(520, 360)
+	min_size = Vector2i(420, 260)
 
 	var root := VBoxContainer.new()
-	root.add_theme_constant_override("separation", 12)
+	root.add_theme_constant_override("separation", 8)
 	add_child(root)
 
 	var header := Label.new()
-	header.text = "Choose a Lifecycle Function"
+	header.text = "Choose a Lifecycle Event"
 	header.add_theme_font_size_override("font_size", 16)
 	root.add_child(header)
-
-	var description := Label.new()
-	description.text = (
-		"Every top-level event is a lifecycle block — just like functions in GDScript.\n"
-		+ "Add conditions and actions inside the block as sub-events."
-	)
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	description.add_theme_color_override("font_color", Color(0.75, 0.75, 0.75))
-	root.add_child(description)
 
 	var sep := HSeparator.new()
 	root.add_child(sep)
 
-	var btn_group := ButtonGroup.new()
+	_item_list = ItemList.new()
+	_item_list.custom_minimum_size = Vector2(0, 100)
+	_item_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_item_list.auto_height = true
+	_item_list.add_theme_font_size_override("font_size", 14)
+	root.add_child(_item_list)
 
+	_item_keys.clear()
 	for option in _LIFECYCLE_OPTIONS:
-		var hbox := HBoxContainer.new()
-		hbox.add_theme_constant_override("separation", 8)
-		root.add_child(hbox)
+		_item_list.add_item(option["label"])
+		_item_keys.append(option["key"])
 
-		var radio := CheckButton.new()
-		radio.button_group = btn_group
-		radio.toggle_mode = true
-		radio.text = option["label"]
-		radio.add_theme_font_size_override("font_size", 13)
-		radio.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var key: String = option["key"]
-		var hint: String = option["hint"]
-		radio.toggled.connect(func(pressed: bool):
-			if pressed:
-				_selected_key = key
-				_hint_label.text = hint
-		)
-		hbox.add_child(radio)
+	_item_list.item_selected.connect(_on_item_selected)
 
 	var hint_sep := HSeparator.new()
 	root.add_child(hint_sep)
 
 	_hint_label = Label.new()
-	_hint_label.text = "← Select a lifecycle function above."
+	_hint_label.text = "Select a lifecycle event above."
 	_hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_hint_label.add_theme_color_override("font_color", Color(0.65, 0.85, 1.0))
 	root.add_child(_hint_label)
+
+
+func _on_item_selected(index: int) -> void:
+	_selected_key = _item_keys[index]
+	_hint_label.text = _LIFECYCLE_OPTIONS[index]["hint"]

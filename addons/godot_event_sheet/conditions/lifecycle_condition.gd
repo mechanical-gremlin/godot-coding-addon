@@ -18,7 +18,7 @@ var _ready_consumed: bool = false
 
 
 func get_summary() -> String:
-	var names := ["On Ready (once)", "Every Frame", "Every Physics Frame"]
+	var names := ["On Start of Scene (once)", "Every Frame", "Every Physics Step"]
 	return names[lifecycle_type]
 
 

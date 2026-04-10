@@ -52,8 +52,8 @@ const CONDITION_CATEGORIES := [
 		"label": "⏱ Lifecycle",
 		"items": [
 			{"label": "Lifecycle: Every Frame", "key": "lifecycle_process"},
-			{"label": "Lifecycle: Every Physics Frame", "key": "lifecycle_physics"},
-			{"label": "Lifecycle: On Ready (once)", "key": "lifecycle_ready"},
+			{"label": "Lifecycle: Every Physics Step", "key": "lifecycle_physics"},
+			{"label": "Lifecycle: On Start of Scene (once)", "key": "lifecycle_ready"},
 		]
 	},
 	{
@@ -125,9 +125,9 @@ const CONDITION_TYPES := {
 	"Property: Compare Value": "property_compare",
 	"Timer: Repeating Timer": "timer_repeat",
 	"Timer: One-Shot Delay": "timer_oneshot",
-	"Lifecycle: On Ready": "lifecycle_ready",
+	"Lifecycle: On Start of Scene": "lifecycle_ready",
 	"Lifecycle: Every Frame": "lifecycle_process",
-	"Lifecycle: Every Physics Frame": "lifecycle_physics",
+	"Lifecycle: Every Physics Step": "lifecycle_physics",
 	"Physics: Is On Floor": "physics_on_floor",
 	"Physics: Is On Wall": "physics_on_wall",
 	"Physics: Is On Ceiling": "physics_on_ceiling",
@@ -425,7 +425,7 @@ func build_property_fields(container: VBoxContainer, condition: ESCondition) -> 
 
 	elif condition is ESLifecycleCondition:
 		_add_enum_field(container, "Event Type:", condition, "lifecycle_type",
-			["On Ready (once)", "Every Frame", "Every Physics Frame"])
+			["On Start of Scene (once)", "Every Frame", "Every Physics Step"])
 
 	elif condition is ESPhysicsCondition:
 		_add_node_path_field(container, "Target Node:", condition, "node_path",

@@ -175,10 +175,10 @@ func _refresh() -> void:
 		var empty_label := Label.new()
 		empty_label.text = (
 			"No events yet. Click '+ Add Lifecycle Event' above to get started!\n\n"
-			+ "Every event lives inside a lifecycle block — just like GDScript:\n"
-			+ "  • _ready()  →  runs once on game start\n"
-			+ "  • _process(delta)  →  runs every frame\n"
-			+ "  • _physics_process(delta)  →  runs every physics step\n\n"
+			+ "Every event lives inside a lifecycle block:\n"
+			+ "  • On Start of Scene  →  runs once when the scene loads\n"
+			+ "  • Every Frame  →  runs continuously\n"
+			+ "  • Every Physics Step  →  runs at a fixed rate for physics\n\n"
 			+ "Inside each block, add sub-events with conditions (WHEN) and actions (THEN)."
 		)
 		empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -756,7 +756,7 @@ func _on_add_event() -> void:
 
 	var dialog := AddLifecycleDialog.create()
 	add_child(dialog)
-	dialog.popup_centered(Vector2i(520, 380))
+	dialog.popup_centered(Vector2i(420, 280))
 	dialog.confirmed.connect(func():
 		var key: String = dialog.get_selected_key()
 		if key.is_empty():
@@ -774,11 +774,11 @@ func _on_add_event() -> void:
 		# Default name from the lifecycle type label.
 		match key:
 			"lifecycle_ready":
-				event.event_name = "_ready()"
+				event.event_name = "On Start of Scene"
 			"lifecycle_process":
-				event.event_name = "_process(delta)"
+				event.event_name = "Every Frame"
 			"lifecycle_physics":
-				event.event_name = "_physics_process(delta)"
+				event.event_name = "Every Physics Step"
 		event.is_block = true
 		event.add_condition(lc_cond)
 		_mark_resource_modified()
