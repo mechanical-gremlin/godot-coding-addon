@@ -55,6 +55,46 @@ const _CALLBACK_CATEGORIES := [
 			 "hint": "Fires once when a Button node in the UI is pressed by the player."},
 		]
 	},
+	{
+		"label": "🖱 Mouse Hover & Click",
+		"items": [
+			{"label": "When the mouse enters an object", "key": "hover_mouse_entered",
+			 "hint": "Fires once when the mouse cursor moves over a node. Great for hover effects and highlights."},
+			{"label": "When the mouse leaves an object", "key": "hover_mouse_exited",
+			 "hint": "Fires once when the mouse cursor moves away from a node. Use to remove hover effects."},
+			{"label": "When a game object is clicked", "key": "click_object",
+			 "hint": "Fires when the player clicks directly on a game object with a collision shape. Perfect for point-and-click games."},
+		]
+	},
+	{
+		"label": "🎬 Animation",
+		"items": [
+			{"label": "When an animation finishes", "key": "animation_finished",
+			 "hint": "Fires once when an animation finishes playing. Great for chaining animations (attack → idle) or destroying after death animation."},
+		]
+	},
+	{
+		"label": "👁 Visibility",
+		"items": [
+			{"label": "When an object appears on screen", "key": "visibility_screen_entered",
+			 "hint": "Fires once when a node becomes visible on the screen. Use to start animations or spawn effects."},
+			{"label": "When an object leaves the screen", "key": "visibility_screen_exited",
+			 "hint": "Fires once when a node moves off screen. Great for destroying off-screen projectiles or enemies."},
+		]
+	},
+	{
+		"label": "🌳 Scene Tree",
+		"items": [
+			{"label": "When an object is added to the scene", "key": "tree_enter",
+			 "hint": "Fires once when a node is added to the game. Use for setup when spawning objects."},
+			{"label": "When an object is removed from the scene", "key": "tree_exit",
+			 "hint": "Fires once when a node is about to be removed. Use for cleanup or dropping items on death."},
+			{"label": "When a child object is added", "key": "tree_child_entered",
+			 "hint": "Fires when a new child node is added to this node. Great for inventory systems or dynamic UI."},
+			{"label": "When a child object is removed", "key": "tree_child_exiting",
+			 "hint": "Fires when a child node is about to be removed from this node. Use for tracking collected items."},
+		]
+	},
 ]
 
 var _selected_key: String = ""

@@ -36,6 +36,11 @@ const ESCollisionCondition := preload("res://addons/godot_event_sheet/conditions
 const ESSignalCondition := preload("res://addons/godot_event_sheet/conditions/signal_condition.gd")
 const ESTimerCondition := preload("res://addons/godot_event_sheet/conditions/timer_condition.gd")
 const ESButtonCondition := preload("res://addons/godot_event_sheet/conditions/button_condition.gd")
+const ESMouseHoverCondition := preload("res://addons/godot_event_sheet/conditions/mouse_hover_condition.gd")
+const ESAnimationCondition := preload("res://addons/godot_event_sheet/conditions/animation_condition.gd")
+const ESVisibilityCondition := preload("res://addons/godot_event_sheet/conditions/visibility_condition.gd")
+const ESTreeLifecycleCondition := preload("res://addons/godot_event_sheet/conditions/tree_lifecycle_condition.gd")
+const ESClickCondition := preload("res://addons/godot_event_sheet/conditions/click_condition.gd")
 
 
 func _ready() -> void:
@@ -256,6 +261,36 @@ func _create_event_row(event: ESEventItem, index: int) -> PanelContainer:
 			is_callback_block = true
 			callback_icon = "🎮"
 			callback_color = Color(0.9, 0.5, 0.9)    # pink
+			callback_label = cond_res.get_summary()
+			break
+		elif cond_res is ESMouseHoverCondition:
+			is_callback_block = true
+			callback_icon = "🖱"
+			callback_color = Color(0.4, 0.8, 0.6)    # teal
+			callback_label = cond_res.get_summary()
+			break
+		elif cond_res is ESClickCondition:
+			is_callback_block = true
+			callback_icon = "🖱"
+			callback_color = Color(0.4, 0.8, 0.6)    # teal
+			callback_label = cond_res.get_summary()
+			break
+		elif cond_res is ESAnimationCondition:
+			is_callback_block = true
+			callback_icon = "🎬"
+			callback_color = Color(0.85, 0.6, 0.2)   # amber
+			callback_label = cond_res.get_summary()
+			break
+		elif cond_res is ESVisibilityCondition:
+			is_callback_block = true
+			callback_icon = "👁"
+			callback_color = Color(0.5, 0.7, 1.0)    # light blue
+			callback_label = cond_res.get_summary()
+			break
+		elif cond_res is ESTreeLifecycleCondition:
+			is_callback_block = true
+			callback_icon = "🌳"
+			callback_color = Color(0.4, 0.75, 0.3)   # forest green
 			callback_label = cond_res.get_summary()
 			break
 
@@ -814,6 +849,32 @@ func _on_add_event() -> void:
 				event.event_name = "Timer (once)"
 			"ui_button_pressed":
 				event.event_name = "On Button Pressed"
+			"hover_mouse_entered":
+				event.event_name = "On Mouse Entered"
+			"hover_mouse_exited":
+				event.event_name = "On Mouse Exited"
+			"hover_is_hovered":
+				event.event_name = "While Hovered"
+			"click_object":
+				event.event_name = "On Object Clicked"
+			"click_object_released":
+				event.event_name = "On Object Click Released"
+			"animation_finished":
+				event.event_name = "On Animation Finished"
+			"visibility_screen_entered":
+				event.event_name = "On Appeared on Screen"
+			"visibility_screen_exited":
+				event.event_name = "On Left Screen"
+			"visibility_is_on_screen":
+				event.event_name = "While on Screen"
+			"tree_enter":
+				event.event_name = "On Added to Scene"
+			"tree_exit":
+				event.event_name = "On Removed from Scene"
+			"tree_child_entered":
+				event.event_name = "On Child Added"
+			"tree_child_exiting":
+				event.event_name = "On Child Removed"
 			_:
 				event.event_name = "Event Block"
 		event.is_block = true

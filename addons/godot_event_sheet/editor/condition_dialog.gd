@@ -19,6 +19,11 @@ const ESStateCondition := preload("res://addons/godot_event_sheet/conditions/sta
 const ESNodeCountCondition := preload("res://addons/godot_event_sheet/conditions/node_count_condition.gd")
 const ESJoypadCondition := preload("res://addons/godot_event_sheet/conditions/joypad_condition.gd")
 const ESVariableCondition := preload("res://addons/godot_event_sheet/conditions/variable_condition.gd")
+const ESMouseHoverCondition := preload("res://addons/godot_event_sheet/conditions/mouse_hover_condition.gd")
+const ESAnimationCondition := preload("res://addons/godot_event_sheet/conditions/animation_condition.gd")
+const ESVisibilityCondition := preload("res://addons/godot_event_sheet/conditions/visibility_condition.gd")
+const ESTreeLifecycleCondition := preload("res://addons/godot_event_sheet/conditions/tree_lifecycle_condition.gd")
+const ESClickCondition := preload("res://addons/godot_event_sheet/conditions/click_condition.gd")
 const PropertyHints := preload("res://addons/godot_event_sheet/editor/property_hints.gd")
 
 var _condition_list: Tree
@@ -118,6 +123,39 @@ const CONDITION_CATEGORIES := [
 			{"label": "Variable: Compare Value", "key": "variable_compare"},
 		]
 	},
+	{
+		"label": "🖱 Hover & Click",
+		"items": [
+			{"label": "Hover: Mouse Entered", "key": "hover_mouse_entered"},
+			{"label": "Hover: Mouse Exited", "key": "hover_mouse_exited"},
+			{"label": "Hover: Is Hovered", "key": "hover_is_hovered"},
+			{"label": "Click: Object Clicked", "key": "click_object"},
+			{"label": "Click: Object Click Released", "key": "click_object_released"},
+		]
+	},
+	{
+		"label": "🎬 Animation",
+		"items": [
+			{"label": "Animation: Animation Finished", "key": "animation_finished"},
+		]
+	},
+	{
+		"label": "👁 Visibility",
+		"items": [
+			{"label": "Visibility: Appeared on Screen", "key": "visibility_screen_entered"},
+			{"label": "Visibility: Left the Screen", "key": "visibility_screen_exited"},
+			{"label": "Visibility: Is on Screen", "key": "visibility_is_on_screen"},
+		]
+	},
+	{
+		"label": "🌳 Scene Tree",
+		"items": [
+			{"label": "Tree: Added to Scene", "key": "tree_enter"},
+			{"label": "Tree: Removed from Scene", "key": "tree_exit"},
+			{"label": "Tree: Child Added", "key": "tree_child_entered"},
+			{"label": "Tree: Child Removed", "key": "tree_child_exiting"},
+		]
+	},
 ]
 
 # Flat map kept for backward compat (used by add_event_dialog key lookup).
@@ -158,6 +196,19 @@ const CONDITION_TYPES := {
 	"Input: Joypad Button Held": "joypad_button_held",
 	"Input: Joypad Connected": "joypad_connected",
 	"Variable: Compare Value": "variable_compare",
+	"Hover: Mouse Entered": "hover_mouse_entered",
+	"Hover: Mouse Exited": "hover_mouse_exited",
+	"Hover: Is Hovered": "hover_is_hovered",
+	"Click: Object Clicked": "click_object",
+	"Click: Object Click Released": "click_object_released",
+	"Animation: Animation Finished": "animation_finished",
+	"Visibility: Appeared on Screen": "visibility_screen_entered",
+	"Visibility: Left the Screen": "visibility_screen_exited",
+	"Visibility: Is on Screen": "visibility_is_on_screen",
+	"Tree: Added to Scene": "tree_enter",
+	"Tree: Removed from Scene": "tree_exit",
+	"Tree: Child Added": "tree_child_entered",
+	"Tree: Child Removed": "tree_child_exiting",
 }
 
 
@@ -374,6 +425,56 @@ func create_condition_from_key(key: String) -> ESCondition:
 			return c
 		"variable_compare":
 			return ESVariableCondition.new()
+		"hover_mouse_entered":
+			var c := ESMouseHoverCondition.new()
+			c.hover_type = ESMouseHoverCondition.HoverType.MOUSE_ENTERED
+			return c
+		"hover_mouse_exited":
+			var c := ESMouseHoverCondition.new()
+			c.hover_type = ESMouseHoverCondition.HoverType.MOUSE_EXITED
+			return c
+		"hover_is_hovered":
+			var c := ESMouseHoverCondition.new()
+			c.hover_type = ESMouseHoverCondition.HoverType.IS_HOVERED
+			return c
+		"click_object":
+			var c := ESClickCondition.new()
+			c.click_type = ESClickCondition.ClickType.CLICKED
+			return c
+		"click_object_released":
+			var c := ESClickCondition.new()
+			c.click_type = ESClickCondition.ClickType.RELEASED
+			return c
+		"animation_finished":
+			return ESAnimationCondition.new()
+		"visibility_screen_entered":
+			var c := ESVisibilityCondition.new()
+			c.visibility_type = ESVisibilityCondition.VisibilityType.SCREEN_ENTERED
+			return c
+		"visibility_screen_exited":
+			var c := ESVisibilityCondition.new()
+			c.visibility_type = ESVisibilityCondition.VisibilityType.SCREEN_EXITED
+			return c
+		"visibility_is_on_screen":
+			var c := ESVisibilityCondition.new()
+			c.visibility_type = ESVisibilityCondition.VisibilityType.IS_ON_SCREEN
+			return c
+		"tree_enter":
+			var c := ESTreeLifecycleCondition.new()
+			c.tree_event = ESTreeLifecycleCondition.TreeEvent.ENTER_TREE
+			return c
+		"tree_exit":
+			var c := ESTreeLifecycleCondition.new()
+			c.tree_event = ESTreeLifecycleCondition.TreeEvent.EXIT_TREE
+			return c
+		"tree_child_entered":
+			var c := ESTreeLifecycleCondition.new()
+			c.tree_event = ESTreeLifecycleCondition.TreeEvent.CHILD_ENTERED_TREE
+			return c
+		"tree_child_exiting":
+			var c := ESTreeLifecycleCondition.new()
+			c.tree_event = ESTreeLifecycleCondition.TreeEvent.CHILD_EXITING_TREE
+			return c
 	return null
 
 
@@ -512,6 +613,36 @@ func build_property_fields(container: VBoxContainer, condition: ESCondition) -> 
 			["== (Equal)", "!= (Not Equal)", "> (Greater)", "< (Less)", ">= (Greater/Equal)", "<= (Less/Equal)"])
 		_add_string_field(container, "Compare Value:", condition, "compare_value",
 			"Value to compare against (number, string, true/false)")
+
+	elif condition is ESMouseHoverCondition:
+		_add_enum_field(container, "Hover Event:", condition, "hover_type",
+			["Mouse Entered", "Mouse Exited", "Is Hovered"])
+		_add_node_path_field(container, "Target Node:", condition, "target_path",
+			"Node to detect hover on (leave empty for parent)")
+
+	elif condition is ESClickCondition:
+		_add_enum_field(container, "Click Type:", condition, "click_type",
+			["Clicked", "Click Released"])
+		_add_node_path_field(container, "Target Node:", condition, "target_path",
+			"CollisionObject2D/3D to detect clicks on (leave empty for parent)")
+
+	elif condition is ESAnimationCondition:
+		_add_node_path_field(container, "Animation Player:", condition, "player_path",
+			"Path to AnimationPlayer or AnimatedSprite2D (leave empty to auto-find)")
+		_add_string_field(container, "Animation Name:", condition, "animation_name",
+			"Only trigger for this animation (leave empty for any)")
+
+	elif condition is ESVisibilityCondition:
+		_add_enum_field(container, "Visibility Event:", condition, "visibility_type",
+			["Appeared on Screen", "Left the Screen", "Is on Screen"])
+		_add_node_path_field(container, "Notifier Node:", condition, "notifier_path",
+			"Path to VisibleOnScreenNotifier2D/3D (leave empty to auto-find)")
+
+	elif condition is ESTreeLifecycleCondition:
+		_add_enum_field(container, "Tree Event:", condition, "tree_event",
+			["Added to Scene", "Removed from Scene", "Child Added", "Child Removed"])
+		_add_node_path_field(container, "Target Node:", condition, "target_path",
+			"Node to monitor (leave empty for parent)")
 
 
 ## Helper: add a string input field.
