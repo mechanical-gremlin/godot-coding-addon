@@ -256,6 +256,9 @@ func get_selected_action() -> ESAction:
 
 ## Build the full dialog layout.
 func _build_ui() -> void:
+	min_size = Vector2i(800, 500)
+	max_size = Vector2i(900, 650)
+
 	var root := VBoxContainer.new()
 	root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	root.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -296,6 +299,8 @@ func _build_ui() -> void:
 		cat_item.set_text(0, cat["label"])
 		cat_item.set_selectable(0, false)
 		cat_item.set_custom_bg_color(0, Color(0.15, 0.17, 0.22))
+		# Collapse categories by default so the dialog fits on screen.
+		cat_item.collapsed = true
 		for entry in cat["items"]:
 			var child := _trigger_list.create_item(cat_item)
 			child.set_text(0, "  " + entry["label"])
@@ -335,6 +340,8 @@ func _build_ui() -> void:
 		cat_item.set_text(0, cat["label"])
 		cat_item.set_selectable(0, false)
 		cat_item.set_custom_bg_color(0, Color(0.15, 0.17, 0.22))
+		# Collapse categories by default so the dialog fits on screen.
+		cat_item.collapsed = true
 		for entry in cat["items"]:
 			var child := _reaction_list.create_item(cat_item)
 			child.set_text(0, "  " + entry["label"])

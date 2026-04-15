@@ -310,9 +310,11 @@ func _evaluate_events(events: Array, delta: float) -> void:
 
 		var conditions_pass := false
 		if event.conditions.size() == 0:
-			continue
-
-		if event.logic_mode == ESEventItem.LogicMode.OR:
+			# No conditions means unconditionally execute.  This allows sub-events
+			# within blocks that have <none> as their condition to run whenever
+			# the parent block fires.
+			conditions_pass = true
+		elif event.logic_mode == ESEventItem.LogicMode.OR:
 			# OR logic: at least one condition must be true.
 			for cond_res in event.conditions:
 				var cond := cond_res as ESCondition

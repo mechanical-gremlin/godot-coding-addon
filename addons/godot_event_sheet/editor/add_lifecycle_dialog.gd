@@ -138,6 +138,7 @@ func get_selected_condition() -> ESCondition:
 ## Build the dialog layout.
 func _build_ui() -> void:
 	min_size = Vector2i(580, 380)
+	max_size = Vector2i(700, 500)
 
 	var root := VBoxContainer.new()
 	root.add_theme_constant_override("separation", 8)
@@ -173,6 +174,8 @@ func _build_ui() -> void:
 		cat_item.set_text(0, cat["label"])
 		cat_item.set_selectable(0, false)
 		cat_item.set_custom_bg_color(0, Color(0.15, 0.17, 0.22))
+		# Collapse categories by default so the dialog fits on screen.
+		cat_item.collapsed = true
 		for entry in cat["items"]:
 			var child := _tree.create_item(cat_item)
 			child.set_text(0, "  " + entry["label"])
