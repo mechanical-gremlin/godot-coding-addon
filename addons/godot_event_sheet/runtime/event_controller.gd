@@ -22,6 +22,7 @@ const ESTimerCondition := preload("res://addons/godot_event_sheet/conditions/tim
 const ESLifecycleCondition := preload("res://addons/godot_event_sheet/conditions/lifecycle_condition.gd")
 const ESPhysicsCondition := preload("res://addons/godot_event_sheet/conditions/physics_condition.gd")
 const ESJoypadCondition := preload("res://addons/godot_event_sheet/conditions/joypad_condition.gd")
+const ESWaitAction := preload("res://addons/godot_event_sheet/actions/wait_action.gd")
 
 ## The EventSheet resource containing all events.
 @export var event_sheet: ESEventSheet = null
@@ -335,11 +336,22 @@ func _evaluate_events(events: Array, delta: float) -> void:
 
 
 ## Execute all actions in an event.
-func _execute_actions(event: ESEventItem, delta: float) -> void:
-	for action_res in event.actions:
-		var action := action_res as ESAction
-		if action:
-			action.execute(self, delta)
+## [param start_index] allows resuming from a specific action (used after a Wait).
+func _execute_actions(event: ESEventItem, delta: float, start_index: int = 0) -> void:
+	for i in range(start_index, event.actions.size()):
+		var action := event.actions[i] as ESAction
+		if not action:
+			continue
+		if action is ESWaitAction:
+			var wait_act := action as ESWaitAction
+			# Schedule the remaining actions to run after the delay.
+			# Delta is passed as 0.0 because the original frame delta is stale
+			# by the time the timer fires.
+			get_tree().create_timer(wait_act.wait_time).timeout.connect(
+				func(): _execute_actions(event, 0.0, i + 1)
+			)
+			return
+		action.execute(self, delta)
 
 
 ## Track key states for JUST_PRESSED/JUST_RELEASED detection with raw keys.
