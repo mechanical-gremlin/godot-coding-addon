@@ -60,13 +60,16 @@ func execute(controller: Node, _delta: float) -> void:
 			controller.set_meta(meta_key, _auto_convert(value))
 		VariableOp.ADD:
 			var current = _get_current(controller, meta_key, 0.0)
-			controller.set_meta(meta_key, float(current) + float(value))
+			var numeric_val := _to_float(value)
+			controller.set_meta(meta_key, float(current) + numeric_val)
 		VariableOp.SUBTRACT:
 			var current = _get_current(controller, meta_key, 0.0)
-			controller.set_meta(meta_key, float(current) - float(value))
+			var numeric_val := _to_float(value)
+			controller.set_meta(meta_key, float(current) - numeric_val)
 		VariableOp.MULTIPLY:
 			var current = _get_current(controller, meta_key, 0.0)
-			controller.set_meta(meta_key, float(current) * float(value))
+			var numeric_val := _to_float(value)
+			controller.set_meta(meta_key, float(current) * numeric_val)
 		VariableOp.TOGGLE:
 			var current = _get_current(controller, meta_key, false)
 			controller.set_meta(meta_key, not _to_bool(current))
@@ -101,3 +104,13 @@ static func _to_bool(val) -> bool:
 	if val is String:
 		return val == "true"
 	return false
+
+
+## Safely convert a string to float, returning 0.0 for non-numeric strings.
+static func _to_float(val: String) -> float:
+	if val.is_valid_float():
+		return val.to_float()
+	if val.is_valid_int():
+		return float(val.to_int())
+	push_warning("EventSheet: Variable action – '%s' is not a valid number, using 0." % val)
+	return 0.0

@@ -345,8 +345,10 @@ func _execute_actions(event: ESEventItem, delta: float, start_index: int = 0) ->
 		if action is ESWaitAction:
 			var wait_act := action as ESWaitAction
 			# Schedule the remaining actions to run after the delay.
+			# Delta is passed as 0.0 because the original frame delta is stale
+			# by the time the timer fires.
 			get_tree().create_timer(wait_act.wait_time).timeout.connect(
-				func(): _execute_actions(event, delta, i + 1)
+				func(): _execute_actions(event, 0.0, i + 1)
 			)
 			return
 		action.execute(self, delta)
