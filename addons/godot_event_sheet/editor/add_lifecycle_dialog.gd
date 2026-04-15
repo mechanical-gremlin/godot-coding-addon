@@ -1,7 +1,7 @@
 @tool
 extends ConfirmationDialog
 ## Dialog for choosing which Godot callback function a new top-level event block maps to.
-## Students pick a callback (lifecycle, collision, signal, timer, or UI button),
+## Users pick a callback (lifecycle, collision, signal, timer, or UI button),
 ## configure its properties, then add sub-events with conditions and actions.
 
 # Categorized callback function options available as event block starters.

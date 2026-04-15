@@ -410,7 +410,7 @@ func _create_event_row(event: ESEventItem, index: int) -> PanelContainer:
 		cb_val.add_theme_color_override("font_color", callback_color)
 		cb_bar.add_child(cb_val)
 	else:
-		# Non-lifecycle event: show full condition/action columns (backward compat).
+		# Non-callback event: show full condition/action columns (backward compat).
 		var columns := HBoxContainer.new()
 		columns.add_theme_constant_override("separation", 12)
 		main_vbox.add_child(columns)
