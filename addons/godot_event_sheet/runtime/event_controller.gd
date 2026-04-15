@@ -22,6 +22,11 @@ const ESTimerCondition := preload("res://addons/godot_event_sheet/conditions/tim
 const ESLifecycleCondition := preload("res://addons/godot_event_sheet/conditions/lifecycle_condition.gd")
 const ESPhysicsCondition := preload("res://addons/godot_event_sheet/conditions/physics_condition.gd")
 const ESJoypadCondition := preload("res://addons/godot_event_sheet/conditions/joypad_condition.gd")
+const ESMouseHoverCondition := preload("res://addons/godot_event_sheet/conditions/mouse_hover_condition.gd")
+const ESAnimationCondition := preload("res://addons/godot_event_sheet/conditions/animation_condition.gd")
+const ESVisibilityCondition := preload("res://addons/godot_event_sheet/conditions/visibility_condition.gd")
+const ESTreeLifecycleCondition := preload("res://addons/godot_event_sheet/conditions/tree_lifecycle_condition.gd")
+const ESClickCondition := preload("res://addons/godot_event_sheet/conditions/click_condition.gd")
 const ESWaitAction := preload("res://addons/godot_event_sheet/actions/wait_action.gd")
 
 ## The EventSheet resource containing all events.
@@ -131,9 +136,13 @@ func _determine_event_category(event: ESEventItem) -> String:
 					return "ready"
 				ESLifecycleCondition.LifecycleType.PHYSICS_PROCESS:
 					return "physics"
-		# Signal, collision, timer, and button conditions are evaluated in _process.
+		# Signal, collision, timer, button, hover, animation, visibility, tree,
+		# and click conditions are all event-driven and evaluated in _process.
 		if cond is ESSignalCondition or cond is ESCollisionCondition \
-				or cond is ESTimerCondition or cond is ESButtonCondition:
+				or cond is ESTimerCondition or cond is ESButtonCondition \
+				or cond is ESMouseHoverCondition or cond is ESAnimationCondition \
+				or cond is ESVisibilityCondition or cond is ESTreeLifecycleCondition \
+				or cond is ESClickCondition:
 			return "signal"
 		# If the event contains a physics condition but no lifecycle condition,
 		# it should run in _physics_process so is_on_floor() is always fresh.
@@ -170,6 +179,16 @@ func _setup_event_connections(event: ESEventItem) -> void:
 			_setup_timer(cond)
 		elif cond is ESButtonCondition:
 			_connect_button(cond)
+		elif cond is ESMouseHoverCondition:
+			_connect_mouse_hover(cond)
+		elif cond is ESAnimationCondition:
+			_connect_animation(cond)
+		elif cond is ESVisibilityCondition:
+			_connect_visibility(cond)
+		elif cond is ESTreeLifecycleCondition:
+			_connect_tree_lifecycle(cond)
+		elif cond is ESClickCondition:
+			_connect_click(cond)
 
 	# Recurse into sub-events.
 	for sub_res in event.sub_events:
@@ -415,3 +434,141 @@ func _collect_conditions(event: ESEventItem, result: Array) -> void:
 		var sub := sub_res as ESEventItem
 		if sub:
 			_collect_conditions(sub, result)
+
+
+## Connect mouse_entered / mouse_exited signals for a hover condition.
+func _connect_mouse_hover(cond) -> void:
+	var target: Node
+	if cond.target_path.is_empty():
+		target = get_parent()
+	else:
+		target = get_node_or_null(cond.target_path)
+
+	if not target:
+		push_warning("EventSheet: Mouse hover target node not found.")
+		return
+
+	if target.has_signal("mouse_entered") and not target.is_connected("mouse_entered", cond._on_mouse_entered):
+		target.connect("mouse_entered", cond._on_mouse_entered)
+	if target.has_signal("mouse_exited") and not target.is_connected("mouse_exited", cond._on_mouse_exited):
+		target.connect("mouse_exited", cond._on_mouse_exited)
+	if debug_mode:
+		print("EventSheet: Connected mouse hover signals on %s" % target.name)
+
+
+## Connect animation_finished signal for an animation condition.
+func _connect_animation(cond) -> void:
+	var target: Node = null
+	if not cond.player_path.is_empty():
+		target = get_node_or_null(cond.player_path)
+	else:
+		# Auto-find an AnimationPlayer or AnimatedSprite2D child of the parent.
+		var parent := get_parent()
+		if parent:
+			for child in parent.get_children():
+				if child is AnimationPlayer or child is AnimatedSprite2D:
+					target = child
+					break
+			# Also check if the parent itself is an AnimatedSprite2D.
+			if not target and parent is AnimatedSprite2D:
+				target = parent
+
+	if not target:
+		push_warning("EventSheet: Animation player node not found for animation condition.")
+		return
+
+	if target is AnimationPlayer:
+		if not target.is_connected("animation_finished", cond._on_animation_finished):
+			target.connect("animation_finished", cond._on_animation_finished)
+	elif target is AnimatedSprite2D:
+		if not target.is_connected("animation_finished", cond._on_sprite_animation_finished):
+			target.connect("animation_finished", cond._on_sprite_animation_finished)
+
+	if debug_mode:
+		print("EventSheet: Connected animation_finished on %s" % target.name)
+
+
+## Connect screen_entered / screen_exited signals for a visibility condition.
+func _connect_visibility(cond) -> void:
+	var target: Node = null
+	if not cond.notifier_path.is_empty():
+		target = get_node_or_null(cond.notifier_path)
+	else:
+		# Auto-find a VisibleOnScreenNotifier2D/3D child of the parent.
+		var parent := get_parent()
+		if parent:
+			for child in parent.get_children():
+				if child is VisibleOnScreenNotifier2D or child is VisibleOnScreenNotifier3D:
+					target = child
+					break
+
+	if not target:
+		push_warning("EventSheet: VisibleOnScreenNotifier node not found for visibility condition.")
+		return
+
+	if target.has_signal("screen_entered") and not target.is_connected("screen_entered", cond._on_screen_entered):
+		target.connect("screen_entered", cond._on_screen_entered)
+	if target.has_signal("screen_exited") and not target.is_connected("screen_exited", cond._on_screen_exited):
+		target.connect("screen_exited", cond._on_screen_exited)
+
+	if debug_mode:
+		print("EventSheet: Connected visibility signals on %s" % target.name)
+
+
+## Connect tree_entered / tree_exiting / child_entered_tree / child_exiting_tree signals.
+func _connect_tree_lifecycle(cond) -> void:
+	var target: Node
+	if cond.target_path.is_empty():
+		target = get_parent()
+	else:
+		target = get_node_or_null(cond.target_path)
+
+	if not target:
+		push_warning("EventSheet: Tree lifecycle target node not found.")
+		return
+
+	match cond.tree_event:
+		ESTreeLifecycleCondition.TreeEvent.ENTER_TREE:
+			if not target.is_connected("tree_entered", cond._on_tree_entered):
+				target.connect("tree_entered", cond._on_tree_entered)
+		ESTreeLifecycleCondition.TreeEvent.EXIT_TREE:
+			if not target.is_connected("tree_exiting", cond._on_tree_exiting):
+				target.connect("tree_exiting", cond._on_tree_exiting)
+		ESTreeLifecycleCondition.TreeEvent.CHILD_ENTERED_TREE:
+			if not target.is_connected("child_entered_tree", cond._on_child_entered_tree):
+				target.connect("child_entered_tree", cond._on_child_entered_tree)
+		ESTreeLifecycleCondition.TreeEvent.CHILD_EXITING_TREE:
+			if not target.is_connected("child_exiting_tree", cond._on_child_exiting_tree):
+				target.connect("child_exiting_tree", cond._on_child_exiting_tree)
+
+	if debug_mode:
+		print("EventSheet: Connected tree lifecycle signal on %s" % target.name)
+
+
+## Connect input_event signal on a CollisionObject2D/3D for click detection.
+func _connect_click(cond) -> void:
+	var target: Node
+	if cond.target_path.is_empty():
+		target = get_parent()
+	else:
+		target = get_node_or_null(cond.target_path)
+
+	if not target:
+		push_warning("EventSheet: Click target node not found.")
+		return
+
+	if target is CollisionObject2D:
+		if not target.is_connected("input_event", cond._on_input_event_2d):
+			target.connect("input_event", cond._on_input_event_2d)
+			# Ensure the node picks up input events.
+			target.input_pickable = true
+	elif target is CollisionObject3D:
+		if not target.is_connected("input_event", cond._on_input_event_3d):
+			target.connect("input_event", cond._on_input_event_3d)
+			target.input_ray_pickable = true
+	else:
+		push_warning("EventSheet: Click target '%s' is not a CollisionObject2D/3D." % target.name)
+		return
+
+	if debug_mode:
+		print("EventSheet: Connected click input_event on %s" % target.name)

@@ -91,6 +91,39 @@ const TRIGGER_CATEGORIES := [
 			{"label": "When a variable matches a value", "key": "variable_compare"},
 		]
 	},
+	{
+		"label": "🖱 Hover & Click",
+		"items": [
+			{"label": "When the mouse enters an object", "key": "hover_mouse_entered"},
+			{"label": "When the mouse leaves an object", "key": "hover_mouse_exited"},
+			{"label": "While the mouse is over an object", "key": "hover_is_hovered"},
+			{"label": "When a game object is clicked", "key": "click_object"},
+			{"label": "When a game object click is released", "key": "click_object_released"},
+		]
+	},
+	{
+		"label": "🎬 Animation",
+		"items": [
+			{"label": "When an animation finishes", "key": "animation_finished"},
+		]
+	},
+	{
+		"label": "👁 Visibility",
+		"items": [
+			{"label": "When an object appears on screen", "key": "visibility_screen_entered"},
+			{"label": "When an object leaves the screen", "key": "visibility_screen_exited"},
+			{"label": "While an object is on screen", "key": "visibility_is_on_screen"},
+		]
+	},
+	{
+		"label": "🌳 Scene Tree",
+		"items": [
+			{"label": "When an object is added to the scene", "key": "tree_enter"},
+			{"label": "When an object is removed from the scene", "key": "tree_exit"},
+			{"label": "When a child object is added", "key": "tree_child_entered"},
+			{"label": "When a child object is removed", "key": "tree_child_exiting"},
+		]
+	},
 ]
 
 # Categorized reaction types.
@@ -256,7 +289,8 @@ func _build_ui() -> void:
 		# Callback-based triggers (those driven by their own Godot function/signal)
 		# are only valid as top-level starting events — hide them in sub-events.
 		if _is_sub_event and cat["label"] in [
-			"⏱ Lifecycle", "💥 Collision", "📡 Signals", "⏲ Timers"]:
+			"⏱ Lifecycle", "💥 Collision", "📡 Signals", "⏲ Timers",
+			"🖱 Hover & Click", "🎬 Animation", "👁 Visibility", "🌳 Scene Tree"]:
 			continue
 		var cat_item := _trigger_list.create_item(trigger_root)
 		cat_item.set_text(0, cat["label"])

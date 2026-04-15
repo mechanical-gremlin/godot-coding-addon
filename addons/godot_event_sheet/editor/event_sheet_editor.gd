@@ -20,7 +20,7 @@ var _events_container: VBoxContainer
 var _no_sheet_label: Label
 var _sheet_name_edit: LineEdit
 
-const _NO_SHEET_TEXT := "Select an EventController node to edit its Event Sheet.\n\nTo get started:\n1. Add an EventController node as a child of your game object\n2. Click the EventController node to open this editor\n3. Click '+ Add Lifecycle Event' to create your first event"
+const _NO_SHEET_TEXT := "Select an EventController node to edit its Event Sheet.\n\nTo get started:\n1. Add an EventController node as a child of your game object\n2. Click the EventController node to open this editor\n3. Click '+ Add Event Block' to create your first event"
 
 # $collider is a runtime-only synthetic path injected by event_controller.gd during
 # collision callbacks; it never resolves as a real scene node, so we skip it.
@@ -32,6 +32,15 @@ const ActionDialog := preload("res://addons/godot_event_sheet/editor/action_dial
 const AddEventDialog := preload("res://addons/godot_event_sheet/editor/add_event_dialog.gd")
 const AddLifecycleDialog := preload("res://addons/godot_event_sheet/editor/add_lifecycle_dialog.gd")
 const ESLifecycleCondition := preload("res://addons/godot_event_sheet/conditions/lifecycle_condition.gd")
+const ESCollisionCondition := preload("res://addons/godot_event_sheet/conditions/collision_condition.gd")
+const ESSignalCondition := preload("res://addons/godot_event_sheet/conditions/signal_condition.gd")
+const ESTimerCondition := preload("res://addons/godot_event_sheet/conditions/timer_condition.gd")
+const ESButtonCondition := preload("res://addons/godot_event_sheet/conditions/button_condition.gd")
+const ESMouseHoverCondition := preload("res://addons/godot_event_sheet/conditions/mouse_hover_condition.gd")
+const ESAnimationCondition := preload("res://addons/godot_event_sheet/conditions/animation_condition.gd")
+const ESVisibilityCondition := preload("res://addons/godot_event_sheet/conditions/visibility_condition.gd")
+const ESTreeLifecycleCondition := preload("res://addons/godot_event_sheet/conditions/tree_lifecycle_condition.gd")
+const ESClickCondition := preload("res://addons/godot_event_sheet/conditions/click_condition.gd")
 
 
 func _ready() -> void:
@@ -119,10 +128,10 @@ func _build_ui() -> void:
 	)
 	_toolbar.add_child(expand_all_btn)
 
-	# Add Lifecycle Event button.
+	# Add Event Block button.
 	var add_event_btn := Button.new()
-	add_event_btn.text = "+ Add Lifecycle Event"
-	add_event_btn.tooltip_text = "Add a new lifecycle block (_ready, _process, _physics_process)"
+	add_event_btn.text = "+ Add Event Block"
+	add_event_btn.tooltip_text = "Add a new event block (lifecycle, collision, signal, timer, or UI button)"
 	add_event_btn.pressed.connect(_on_add_event)
 	_toolbar.add_child(add_event_btn)
 
@@ -174,12 +183,8 @@ func _refresh() -> void:
 	if _current_sheet.events.size() == 0:
 		var empty_label := Label.new()
 		empty_label.text = (
-			"No events yet. Click '+ Add Lifecycle Event' above to get started!\n\n"
-			+ "Every event lives inside a lifecycle block:\n"
-			+ "  • On Start of Scene  →  runs once when the scene loads\n"
-			+ "  • Every Frame  →  runs continuously\n"
-			+ "  • Every Physics Step  →  runs at a fixed rate for physics\n\n"
-			+ "Inside each block, add sub-events with conditions (WHEN) and actions (THEN)."
+			"No events yet. Click '+ Add Event Block' above to get started!\n"
+			+ "Choose a callback function (lifecycle, collision, signal, timer) as the foundation of each block."
 		)
 		empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		empty_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -210,27 +215,90 @@ func _create_event_row(event: ESEventItem, index: int) -> PanelContainer:
 	style.content_margin_top = 6
 	style.content_margin_bottom = 6
 
-	# Detect lifecycle type for visual styling.
-	var lifecycle_func_name := ""
-	var lifecycle_type := -1
+	# Detect callback condition type for visual styling.
+	var callback_label := ""       # Shown as the function/callback subtitle.
+	var callback_color := Color()  # Border + label tint color.
+	var callback_icon := ""        # Category icon prefix.
+	var is_callback_block := false # True when the block has a recognised callback condition.
+	var lifecycle_type := -1       # Kept for backward compat checks; -1 = not lifecycle.
+
 	for cond_res in event.conditions:
 		if cond_res is ESLifecycleCondition:
 			var lc := cond_res as ESLifecycleCondition
 			lifecycle_type = lc.lifecycle_type
+			is_callback_block = true
+			callback_icon = "⏱"
+			match lc.lifecycle_type:
+				ESLifecycleCondition.LifecycleType.READY:
+					callback_label = "func _ready():"
+					callback_color = Color(1.0, 0.65, 0.1)   # orange
+				ESLifecycleCondition.LifecycleType.PROCESS:
+					callback_label = "func _process(delta):"
+					callback_color = Color(0.2, 0.85, 0.4)   # green
+				ESLifecycleCondition.LifecycleType.PHYSICS_PROCESS:
+					callback_label = "func _physics_process(delta):"
+					callback_color = Color(0.6, 0.3, 1.0)    # purple
+			break
+		elif cond_res is ESCollisionCondition:
+			is_callback_block = true
+			callback_icon = "💥"
+			callback_color = Color(1.0, 0.35, 0.35)  # red
+			callback_label = cond_res.get_summary()
+			break
+		elif cond_res is ESSignalCondition:
+			is_callback_block = true
+			callback_icon = "📡"
+			callback_color = Color(1.0, 0.85, 0.3)   # yellow
+			callback_label = cond_res.get_summary()
+			break
+		elif cond_res is ESTimerCondition:
+			is_callback_block = true
+			callback_icon = "⏲"
+			callback_color = Color(0.3, 0.85, 0.9)   # cyan
+			callback_label = cond_res.get_summary()
+			break
+		elif cond_res is ESButtonCondition:
+			is_callback_block = true
+			callback_icon = "🎮"
+			callback_color = Color(0.9, 0.5, 0.9)    # pink
+			callback_label = cond_res.get_summary()
+			break
+		elif cond_res is ESMouseHoverCondition:
+			is_callback_block = true
+			callback_icon = "🖱"
+			callback_color = Color(0.4, 0.8, 0.6)    # teal
+			callback_label = cond_res.get_summary()
+			break
+		elif cond_res is ESClickCondition:
+			is_callback_block = true
+			callback_icon = "🖱"
+			callback_color = Color(0.4, 0.8, 0.6)    # teal
+			callback_label = cond_res.get_summary()
+			break
+		elif cond_res is ESAnimationCondition:
+			is_callback_block = true
+			callback_icon = "🎬"
+			callback_color = Color(0.85, 0.6, 0.2)   # amber
+			callback_label = cond_res.get_summary()
+			break
+		elif cond_res is ESVisibilityCondition:
+			is_callback_block = true
+			callback_icon = "👁"
+			callback_color = Color(0.5, 0.7, 1.0)    # light blue
+			callback_label = cond_res.get_summary()
+			break
+		elif cond_res is ESTreeLifecycleCondition:
+			is_callback_block = true
+			callback_icon = "🌳"
+			callback_color = Color(0.4, 0.75, 0.3)   # forest green
+			callback_label = cond_res.get_summary()
 			break
 
-	# Apply a coloured left border based on lifecycle type; fall back to blue for
-	# non-lifecycle blocks so old-style events still look reasonable.
+	# Apply a coloured left border based on callback type; fall back to blue for
+	# non-callback blocks so old-style events still look reasonable.
 	style.border_width_left = 4
-	if lifecycle_type == ESLifecycleCondition.LifecycleType.READY:
-		style.border_color = Color(1.0, 0.65, 0.1)   # orange
-		lifecycle_func_name = "func _ready():"
-	elif lifecycle_type == ESLifecycleCondition.LifecycleType.PROCESS:
-		style.border_color = Color(0.2, 0.85, 0.4)   # green
-		lifecycle_func_name = "func _process(delta):"
-	elif lifecycle_type == ESLifecycleCondition.LifecycleType.PHYSICS_PROCESS:
-		style.border_color = Color(0.6, 0.3, 1.0)    # purple
-		lifecycle_func_name = "func _physics_process(delta):"
+	if is_callback_block:
+		style.border_color = callback_color
 	elif event.is_block:
 		style.border_color = Color(0.3, 0.6, 1.0)    # blue fallback for old blocks
 
@@ -254,18 +322,12 @@ func _create_event_row(event: ESEventItem, index: int) -> PanelContainer:
 	)
 	header.add_child(enabled_check)
 
-	# GDScript function subtitle (shown when a lifecycle condition is present).
-	if lifecycle_func_name != "":
+	# Callback subtitle (shown when a callback condition is present on the block).
+	if is_callback_block:
 		var func_label := Label.new()
-		func_label.text = lifecycle_func_name
+		func_label.text = "%s %s" % [callback_icon, callback_label]
 		func_label.add_theme_font_size_override("font_size", 13)
-		match lifecycle_type:
-			ESLifecycleCondition.LifecycleType.READY:
-				func_label.add_theme_color_override("font_color", Color(1.0, 0.75, 0.3))
-			ESLifecycleCondition.LifecycleType.PROCESS:
-				func_label.add_theme_color_override("font_color", Color(0.4, 1.0, 0.6))
-			ESLifecycleCondition.LifecycleType.PHYSICS_PROCESS:
-				func_label.add_theme_color_override("font_color", Color(0.75, 0.55, 1.0))
+		func_label.add_theme_color_override("font_color", callback_color)
 		header.add_child(func_label)
 
 	# Event name.
@@ -321,8 +383,8 @@ func _create_event_row(event: ESEventItem, index: int) -> PanelContainer:
 	)
 	header.add_child(collapse_btn)
 
-	# Block toggle button — hidden for lifecycle events (they are always blocks).
-	if lifecycle_type == -1:
+	# Block toggle button — hidden for callback-based events (they are always blocks).
+	if not is_callback_block:
 		var block_btn := Button.new()
 		if event.is_block:
 			block_btn.text = "⬛ Unblock"
@@ -366,29 +428,24 @@ func _create_event_row(event: ESEventItem, index: int) -> PanelContainer:
 		return panel
 
 	# -- Conditions & Actions columns --
-	# For lifecycle events the condition is decorative (always true), so we show a
-	# compact read-only header row instead of the full conditions column.
-	if lifecycle_type != -1:
-		# Show a slim read-only lifecycle chip instead of the full condition editor.
-		var lc_bar := HBoxContainer.new()
-		lc_bar.add_theme_constant_override("separation", 6)
-		main_vbox.add_child(lc_bar)
-		var lc_icon := Label.new()
-		lc_icon.text = "⏱ Lifecycle: "
-		lc_icon.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
-		lc_bar.add_child(lc_icon)
-		var lc_val := Label.new()
-		lc_val.text = lifecycle_func_name
-		match lifecycle_type:
-			ESLifecycleCondition.LifecycleType.READY:
-				lc_val.add_theme_color_override("font_color", Color(1.0, 0.75, 0.3))
-			ESLifecycleCondition.LifecycleType.PROCESS:
-				lc_val.add_theme_color_override("font_color", Color(0.4, 1.0, 0.6))
-			ESLifecycleCondition.LifecycleType.PHYSICS_PROCESS:
-				lc_val.add_theme_color_override("font_color", Color(0.75, 0.55, 1.0))
-		lc_bar.add_child(lc_val)
+	# For callback-based events the condition is decorative (driven by Godot
+	# callbacks), so we show a compact read-only chip instead of the full
+	# conditions column.
+	if is_callback_block:
+		# Show a slim read-only callback chip instead of the full condition editor.
+		var cb_bar := HBoxContainer.new()
+		cb_bar.add_theme_constant_override("separation", 6)
+		main_vbox.add_child(cb_bar)
+		var cb_icon := Label.new()
+		cb_icon.text = "%s Callback: " % callback_icon
+		cb_icon.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+		cb_bar.add_child(cb_icon)
+		var cb_val := Label.new()
+		cb_val.text = callback_label
+		cb_val.add_theme_color_override("font_color", callback_color)
+		cb_bar.add_child(cb_val)
 	else:
-		# Non-lifecycle event: show full condition/action columns (backward compat).
+		# Non-callback event: show full condition/action columns (backward compat).
 		var columns := HBoxContainer.new()
 		columns.add_theme_constant_override("separation", 12)
 		main_vbox.add_child(columns)
@@ -426,7 +483,7 @@ func _create_event_row(event: ESEventItem, index: int) -> PanelContainer:
 		# Add Sub-Event button.
 		var add_sub_btn := Button.new()
 		add_sub_btn.text = "↳ + Add Sub-Event"
-		add_sub_btn.tooltip_text = "Add a sub-event with conditions and actions inside this lifecycle block"
+		add_sub_btn.tooltip_text = "Add a sub-event with conditions and actions inside this event block"
 		add_sub_btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		add_sub_btn.pressed.connect(func(): _on_add_sub_event(event))
 		sub_vbox.add_child(add_sub_btn)
@@ -754,24 +811,19 @@ func _on_add_event() -> void:
 	if not _current_sheet:
 		return
 
-	var dialog := AddLifecycleDialog.create()
+	var dialog := AddLifecycleDialog.create(_current_controller)
 	add_child(dialog)
-	dialog.popup_centered(Vector2i(420, 280))
+	dialog.popup_centered(Vector2i(620, 420))
 	dialog.confirmed.connect(func():
 		var key: String = dialog.get_selected_key()
 		if key.is_empty():
 			return
-		# Create the lifecycle condition directly — no helper object needed.
-		var lc_cond := ESLifecycleCondition.new()
-		match key:
-			"lifecycle_ready":
-				lc_cond.lifecycle_type = ESLifecycleCondition.LifecycleType.READY
-			"lifecycle_process":
-				lc_cond.lifecycle_type = ESLifecycleCondition.LifecycleType.PROCESS
-			"lifecycle_physics":
-				lc_cond.lifecycle_type = ESLifecycleCondition.LifecycleType.PHYSICS_PROCESS
+		# Use the condition created by the dialog (already configured with properties).
+		var cond: ESCondition = dialog.get_selected_condition()
+		if cond == null:
+			return
 		var event := _current_sheet.add_event() as ESEventItem
-		# Default name from the lifecycle type label.
+		# Default name based on callback type.
 		match key:
 			"lifecycle_ready":
 				event.event_name = "On Start of Scene"
@@ -779,8 +831,54 @@ func _on_add_event() -> void:
 				event.event_name = "Every Frame"
 			"lifecycle_physics":
 				event.event_name = "Every Physics Step"
+			"collision_body_entered":
+				event.event_name = "On Body Entered"
+			"collision_body_exited":
+				event.event_name = "On Body Exited"
+			"collision_area_entered":
+				event.event_name = "On Area Entered"
+			"collision_area_exited":
+				event.event_name = "On Area Exited"
+			"collision_is_overlapping":
+				event.event_name = "While Overlapping"
+			"signal_received":
+				event.event_name = "On Signal Received"
+			"timer_repeat":
+				event.event_name = "Timer (repeating)"
+			"timer_oneshot":
+				event.event_name = "Timer (once)"
+			"ui_button_pressed":
+				event.event_name = "On Button Pressed"
+			"hover_mouse_entered":
+				event.event_name = "On Mouse Entered"
+			"hover_mouse_exited":
+				event.event_name = "On Mouse Exited"
+			"hover_is_hovered":
+				event.event_name = "While Hovered"
+			"click_object":
+				event.event_name = "On Object Clicked"
+			"click_object_released":
+				event.event_name = "On Object Click Released"
+			"animation_finished":
+				event.event_name = "On Animation Finished"
+			"visibility_screen_entered":
+				event.event_name = "On Appeared on Screen"
+			"visibility_screen_exited":
+				event.event_name = "On Left Screen"
+			"visibility_is_on_screen":
+				event.event_name = "While on Screen"
+			"tree_enter":
+				event.event_name = "On Added to Scene"
+			"tree_exit":
+				event.event_name = "On Removed from Scene"
+			"tree_child_entered":
+				event.event_name = "On Child Added"
+			"tree_child_exiting":
+				event.event_name = "On Child Removed"
+			_:
+				event.event_name = "Event Block"
 		event.is_block = true
-		event.add_condition(lc_cond)
+		event.add_condition(cond)
 		_mark_resource_modified()
 		_refresh()
 	)
