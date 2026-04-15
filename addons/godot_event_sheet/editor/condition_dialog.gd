@@ -18,6 +18,7 @@ const ESGroupCondition := preload("res://addons/godot_event_sheet/conditions/gro
 const ESStateCondition := preload("res://addons/godot_event_sheet/conditions/state_condition.gd")
 const ESNodeCountCondition := preload("res://addons/godot_event_sheet/conditions/node_count_condition.gd")
 const ESJoypadCondition := preload("res://addons/godot_event_sheet/conditions/joypad_condition.gd")
+const ESVariableCondition := preload("res://addons/godot_event_sheet/conditions/variable_condition.gd")
 const PropertyHints := preload("res://addons/godot_event_sheet/editor/property_hints.gd")
 
 var _condition_list: Tree
@@ -78,9 +79,14 @@ const CONDITION_CATEGORIES := [
 		]
 	},
 	{
-		"label": "📡 Signals & Properties",
+		"label": "📡 Signals",
 		"items": [
 			{"label": "Signal: Signal Received", "key": "signal_received"},
+		]
+	},
+	{
+		"label": "📦 Properties",
+		"items": [
 			{"label": "Property: Compare Value", "key": "property_compare"},
 		]
 	},
@@ -104,6 +110,12 @@ const CONDITION_CATEGORIES := [
 		"label": "🔀 State",
 		"items": [
 			{"label": "State: Check State", "key": "state_check"},
+		]
+	},
+	{
+		"label": "📊 Variables",
+		"items": [
+			{"label": "Variable: Compare Value", "key": "variable_compare"},
 		]
 	},
 ]
@@ -145,6 +157,7 @@ const CONDITION_TYPES := {
 	"Input: Joypad Button Released": "joypad_button_released",
 	"Input: Joypad Button Held": "joypad_button_held",
 	"Input: Joypad Connected": "joypad_connected",
+	"Variable: Compare Value": "variable_compare",
 }
 
 
@@ -359,6 +372,8 @@ func create_condition_from_key(key: String) -> ESCondition:
 			var c := ESJoypadCondition.new()
 			c.check_type = ESJoypadCondition.JoypadCheck.ANY_CONNECTED
 			return c
+		"variable_compare":
+			return ESVariableCondition.new()
 	return null
 
 
@@ -489,6 +504,14 @@ func build_property_fields(container: VBoxContainer, condition: ESCondition) -> 
 				ESJoypadCondition.JoypadCheck.BUTTON_HELD]:
 			_add_int_field(container, "Button Index (0=A, 1=B, ...):", condition, "joypad_button")
 		_add_int_field(container, "Device ID (0=first):", condition, "device_id")
+
+	elif condition is ESVariableCondition:
+		_add_string_field(container, "Variable Name:", condition, "variable_name",
+			"Name of the variable (must match a Variable action)")
+		_add_enum_field(container, "Comparison:", condition, "compare_op",
+			["== (Equal)", "!= (Not Equal)", "> (Greater)", "< (Less)", ">= (Greater/Equal)", "<= (Less/Equal)"])
+		_add_string_field(container, "Compare Value:", condition, "compare_value",
+			"Value to compare against (number, string, true/false)")
 
 
 ## Helper: add a string input field.

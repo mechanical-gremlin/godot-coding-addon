@@ -19,6 +19,8 @@ const ESRandomAction := preload("res://addons/godot_event_sheet/actions/random_a
 const ESGroupAction := preload("res://addons/godot_event_sheet/actions/group_action.gd")
 const ESStateAction := preload("res://addons/godot_event_sheet/actions/state_action.gd")
 const ESClampAction := preload("res://addons/godot_event_sheet/actions/clamp_action.gd")
+const ESWaitAction := preload("res://addons/godot_event_sheet/actions/wait_action.gd")
+const ESVariableAction := preload("res://addons/godot_event_sheet/actions/variable_action.gd")
 const PropertyHints := preload("res://addons/godot_event_sheet/editor/property_hints.gd")
 
 var _action_list: Tree
@@ -130,6 +132,22 @@ const ACTION_CATEGORIES := [
 			{"label": "State: Clear State", "key": "state_clear"},
 		]
 	},
+	{
+		"label": "⏲ Timing",
+		"items": [
+			{"label": "Timing: Wait (Delay)", "key": "wait"},
+		]
+	},
+	{
+		"label": "📊 Variables",
+		"items": [
+			{"label": "Variable: Set Value", "key": "var_set"},
+			{"label": "Variable: Add Value", "key": "var_add"},
+			{"label": "Variable: Subtract Value", "key": "var_subtract"},
+			{"label": "Variable: Multiply Value", "key": "var_multiply"},
+			{"label": "Variable: Toggle (Boolean)", "key": "var_toggle"},
+		]
+	},
 ]
 
 # Flat map kept for backward compat (used by add_event_dialog key lookup).
@@ -174,6 +192,12 @@ const ACTION_TYPES := {
 	"State: Set State": "state_set",
 	"State: Clear State": "state_clear",
 	"Property: Clamp (Min/Max)": "prop_clamp",
+	"Timing: Wait (Delay)": "wait",
+	"Variable: Set Value": "var_set",
+	"Variable: Add Value": "var_add",
+	"Variable: Subtract Value": "var_subtract",
+	"Variable: Multiply Value": "var_multiply",
+	"Variable: Toggle (Boolean)": "var_toggle",
 }
 
 
@@ -409,6 +433,28 @@ func create_action_from_key(key: String) -> ESAction:
 			return a
 		"prop_clamp":
 			return ESClampAction.new()
+		"wait":
+			return ESWaitAction.new()
+		"var_set":
+			var a := ESVariableAction.new()
+			a.operation = ESVariableAction.VariableOp.SET
+			return a
+		"var_add":
+			var a := ESVariableAction.new()
+			a.operation = ESVariableAction.VariableOp.ADD
+			return a
+		"var_subtract":
+			var a := ESVariableAction.new()
+			a.operation = ESVariableAction.VariableOp.SUBTRACT
+			return a
+		"var_multiply":
+			var a := ESVariableAction.new()
+			a.operation = ESVariableAction.VariableOp.MULTIPLY
+			return a
+		"var_toggle":
+			var a := ESVariableAction.new()
+			a.operation = ESVariableAction.VariableOp.TOGGLE
+			return a
 	return null
 
 
@@ -608,6 +654,18 @@ func build_property_fields(container: VBoxContainer, action: ESAction) -> void:
 			"e.g., position.x, position.y, health, scale.x")
 		_add_float_field(container, "Min Value:", action, "min_value")
 		_add_float_field(container, "Max Value:", action, "max_value")
+
+	elif action is ESWaitAction:
+		_add_float_field(container, "Wait Time (seconds):", action, "wait_time")
+
+	elif action is ESVariableAction:
+		_add_string_field(container, "Variable Name:", action, "variable_name",
+			"Name for this variable (e.g., score, health, level)")
+		_add_enum_field(container, "Operation:", action, "operation",
+			["Set", "Add", "Subtract", "Multiply", "Toggle"])
+		if action.operation != ESVariableAction.VariableOp.TOGGLE:
+			_add_string_field(container, "Value:", action, "value",
+				"Value to set/add/subtract/multiply (number, string, or true/false)")
 
 
 # -- Field Helpers (same pattern as condition_dialog.gd) --

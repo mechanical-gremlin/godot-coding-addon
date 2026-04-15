@@ -52,9 +52,14 @@ const TRIGGER_CATEGORIES := [
 		]
 	},
 	{
-		"label": "📡 Signals & Properties",
+		"label": "📡 Signals",
 		"items": [
 			{"label": "When a signal is received", "key": "signal_received"},
+		]
+	},
+	{
+		"label": "📦 Properties",
+		"items": [
 			{"label": "When a property matches a value", "key": "property_compare"},
 		]
 	},
@@ -78,6 +83,12 @@ const TRIGGER_CATEGORIES := [
 		"label": "🔀 State",
 		"items": [
 			{"label": "When the game state matches a value", "key": "state_check"},
+		]
+	},
+	{
+		"label": "📊 Variables",
+		"items": [
+			{"label": "When a variable matches a value", "key": "variable_compare"},
 		]
 	},
 ]
@@ -143,6 +154,22 @@ const REACTION_CATEGORIES := [
 		"items": [
 			{"label": "Set a game state", "key": "state_set"},
 			{"label": "Clear a game state", "key": "state_clear"},
+		]
+	},
+	{
+		"label": "⏲ Timing",
+		"items": [
+			{"label": "Wait (delay) before next actions", "key": "wait"},
+		]
+	},
+	{
+		"label": "📊 Variables",
+		"items": [
+			{"label": "Set a variable", "key": "var_set"},
+			{"label": "Add to a variable", "key": "var_add"},
+			{"label": "Subtract from a variable", "key": "var_subtract"},
+			{"label": "Multiply a variable", "key": "var_multiply"},
+			{"label": "Toggle a variable (on/off)", "key": "var_toggle"},
 		]
 	},
 ]
@@ -226,8 +253,10 @@ func _build_ui() -> void:
 	_trigger_item_to_key.clear()
 	var trigger_root := _trigger_list.create_item()
 	for cat in TRIGGER_CATEGORIES:
-		# Lifecycle triggers are only valid at the top level — hide them in sub-events.
-		if _is_sub_event and cat["label"] == "⏱ Lifecycle":
+		# Callback-based triggers (those driven by their own Godot function/signal)
+		# are only valid as top-level starting events — hide them in sub-events.
+		if _is_sub_event and cat["label"] in [
+			"⏱ Lifecycle", "💥 Collision", "📡 Signals", "⏲ Timers"]:
 			continue
 		var cat_item := _trigger_list.create_item(trigger_root)
 		cat_item.set_text(0, cat["label"])
