@@ -514,9 +514,11 @@ func build_property_fields(container: VBoxContainer, condition: ESCondition) -> 
 
 	elif condition is ESCollisionCondition:
 		_add_node_path_field(container, "Detector Node:", condition, "detector_path",
-			"Path to the Area2D/Area3D node (leave empty for parent)")
+			"Path to the Area2D/Area3D node (leave empty for parent; ignored when Detector Group is set)")
+		_add_string_field(container, "Detector Group:", condition, "detector_group",
+			"Group name — connect ALL nodes in this group as detectors (e.g., hazards, saws)")
 		_add_string_field(container, "Filter Group:", condition, "filter_group",
-			"Only trigger for nodes in this group (leave empty for all)")
+			"Only trigger for colliding nodes in this group (leave empty for all)")
 
 	elif condition is ESButtonCondition:
 		_add_node_path_field(container, "Button Node:", condition, "button_path",

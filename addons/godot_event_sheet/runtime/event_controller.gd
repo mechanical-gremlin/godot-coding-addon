@@ -197,18 +197,32 @@ func _setup_event_connections(event: ESEventItem) -> void:
 			_setup_event_connections(sub)
 
 
-## Connect collision signals from the detector node.
+## Connect collision signals from the detector node (or all nodes in a detector group).
 func _connect_collision(cond: ESCollisionCondition) -> void:
-	var detector: Node
-	if cond.detector_path.is_empty():
-		detector = get_parent()
+	# Build the list of detector nodes to connect.
+	var detectors: Array[Node] = []
+	if not cond.detector_group.is_empty():
+		detectors = get_tree().get_nodes_in_group(cond.detector_group)
+		if detectors.is_empty():
+			push_warning("EventSheet: No nodes found in detector group '%s'." % cond.detector_group)
+			return
 	else:
-		detector = get_node_or_null(cond.detector_path)
+		var detector: Node
+		if cond.detector_path.is_empty():
+			detector = get_parent()
+		else:
+			detector = get_node_or_null(cond.detector_path)
+		if not detector:
+			push_warning("EventSheet: Collision detector node not found.")
+			return
+		detectors = [detector]
 
-	if not detector:
-		push_warning("EventSheet: Collision detector node not found.")
-		return
+	for detector in detectors:
+		_connect_collision_to_node(cond, detector)
 
+
+## Connect a single detector node to a collision condition.
+func _connect_collision_to_node(cond: ESCollisionCondition, detector: Node) -> void:
 	# IS_OVERLAPPING connects both entered and exited to track overlapping nodes.
 	if cond.collision_type == ESCollisionCondition.CollisionType.IS_OVERLAPPING:
 		for sig_name in ["body_entered", "body_exited"]:
