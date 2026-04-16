@@ -17,7 +17,13 @@ enum CollisionType {
 
 ## Path to the node that detects collisions (Area2D, Area3D, or parent).
 ## Leave empty to use the EventController's parent node.
+## Ignored when detector_group is set.
 @export var detector_path: NodePath = NodePath("")
+
+## Group-based detector: connect to ALL nodes in this Godot group.
+## When set, detector_path is ignored and every node in the group acts as a detector.
+## Leave empty to use detector_path instead.
+@export var detector_group: String = ""
 
 ## Optional: only trigger if the colliding node is in this group.
 ## Leave empty to trigger for any collision.
@@ -37,8 +43,10 @@ func get_summary() -> String:
 	var type_names := ["body entered", "body exited", "area entered", "area exited", "is overlapping"]
 	var desc := "Collision: %s" % type_names[collision_type]
 	if not filter_group.is_empty():
-		desc += " (group: %s)" % filter_group
-	if not detector_path.is_empty():
+		desc += " (filter group: %s)" % filter_group
+	if not detector_group.is_empty():
+		desc += " on group '%s'" % detector_group
+	elif not detector_path.is_empty():
 		desc += " on %s" % str(detector_path)
 	return desc
 
