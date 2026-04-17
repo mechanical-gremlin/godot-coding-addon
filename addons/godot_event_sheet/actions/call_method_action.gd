@@ -65,13 +65,9 @@ func execute(controller: Node, _delta: float) -> void:
 			2: target.call_deferred(method_name, args[0], args[1])
 			3: target.call_deferred(method_name, args[0], args[1], args[2])
 			4: target.call_deferred(method_name, args[0], args[1], args[2], args[3])
+			_: target.call_deferred(method_name, args[0], args[1], args[2], args[3])
 	else:
-		match args.size():
-			0: target.call(method_name)
-			1: target.call(method_name, args[0])
-			2: target.call(method_name, args[0], args[1])
-			3: target.call(method_name, args[0], args[1], args[2])
-			4: target.call(method_name, args[0], args[1], args[2], args[3])
+		target.callv(method_name, args)
 
 
 ## Convert a string argument to the appropriate type.

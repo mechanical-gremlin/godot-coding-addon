@@ -21,6 +21,7 @@ const ESStateAction := preload("res://addons/godot_event_sheet/actions/state_act
 const ESClampAction := preload("res://addons/godot_event_sheet/actions/clamp_action.gd")
 const ESWaitAction := preload("res://addons/godot_event_sheet/actions/wait_action.gd")
 const ESVariableAction := preload("res://addons/godot_event_sheet/actions/variable_action.gd")
+const ESCallMethodAction := preload("res://addons/godot_event_sheet/actions/call_method_action.gd")
 const PropertyHints := preload("res://addons/godot_event_sheet/editor/property_hints.gd")
 
 var _action_list: Tree
@@ -91,12 +92,20 @@ const ACTION_CATEGORIES := [
 			{"label": "Scene: Change Scene", "key": "scene_change"},
 			{"label": "Scene: Show Node", "key": "scene_show"},
 			{"label": "Scene: Hide Node", "key": "scene_hide"},
+			{"label": "Scene: Pause Tree", "key": "scene_pause"},
+			{"label": "Scene: Unpause Tree", "key": "scene_unpause"},
 		]
 	},
 	{
 		"label": "📡 Signals",
 		"items": [
 			{"label": "Signal: Emit Signal", "key": "emit_signal"},
+		]
+	},
+	{
+		"label": "🔧 Methods",
+		"items": [
+			{"label": "Method: Call Method", "key": "call_method"},
 		]
 	},
 	{
@@ -146,6 +155,9 @@ const ACTION_CATEGORIES := [
 			{"label": "Variable: Subtract Value", "key": "var_subtract"},
 			{"label": "Variable: Multiply Value", "key": "var_multiply"},
 			{"label": "Variable: Toggle (Boolean)", "key": "var_toggle"},
+			{"label": "Variable: Append to Array", "key": "var_append"},
+			{"label": "Variable: Remove from Array", "key": "var_remove"},
+			{"label": "Variable: Clear Array", "key": "var_clear_array"},
 		]
 	},
 ]
@@ -198,6 +210,12 @@ const ACTION_TYPES := {
 	"Variable: Subtract Value": "var_subtract",
 	"Variable: Multiply Value": "var_multiply",
 	"Variable: Toggle (Boolean)": "var_toggle",
+	"Variable: Append to Array": "var_append",
+	"Variable: Remove from Array": "var_remove",
+	"Variable: Clear Array": "var_clear_array",
+	"Scene: Pause Tree": "scene_pause",
+	"Scene: Unpause Tree": "scene_unpause",
+	"Method: Call Method": "call_method",
 }
 
 
@@ -455,6 +473,28 @@ func create_action_from_key(key: String) -> ESAction:
 			var a := ESVariableAction.new()
 			a.operation = ESVariableAction.VariableOp.TOGGLE
 			return a
+		"var_append":
+			var a := ESVariableAction.new()
+			a.operation = ESVariableAction.VariableOp.APPEND
+			return a
+		"var_remove":
+			var a := ESVariableAction.new()
+			a.operation = ESVariableAction.VariableOp.REMOVE
+			return a
+		"var_clear_array":
+			var a := ESVariableAction.new()
+			a.operation = ESVariableAction.VariableOp.CLEAR_ARRAY
+			return a
+		"scene_pause":
+			var a := ESSceneAction.new()
+			a.operation = ESSceneAction.SceneOp.PAUSE_TREE
+			return a
+		"scene_unpause":
+			var a := ESSceneAction.new()
+			a.operation = ESSceneAction.SceneOp.UNPAUSE_TREE
+			return a
+		"call_method":
+			return ESCallMethodAction.new()
 	return null
 
 
@@ -517,6 +557,7 @@ func build_property_fields(container: VBoxContainer, action: ESAction) -> void:
 			"Value to set/add. Use {../Node:prop} for live values, e.g., Health: {../Player:health}")
 		_add_enum_field(container, "Mode:", action, "set_mode",
 			["Set", "Add", "Subtract", "Multiply", "Toggle"])
+		_add_bool_field(container, "Use Deferred (for physics callbacks):", action, "use_deferred")
 
 	elif action is ESEmitSignalAction:
 		_add_node_path_field(container, "Target Node:", action, "target_path",
@@ -549,6 +590,9 @@ func build_property_fields(container: VBoxContainer, action: ESAction) -> void:
 			ESSceneAction.SceneOp.CHANGE_SCENE:
 				_add_string_field(container, "Scene Path:", action, "scene_path",
 					"res://path/to/next_scene.tscn")
+				_add_bool_field(container, "Use Deferred (for physics callbacks):", action, "use_deferred")
+			ESSceneAction.SceneOp.PAUSE_TREE, ESSceneAction.SceneOp.UNPAUSE_TREE:
+				pass  # No additional fields needed.
 
 	elif action is ESSoundAction:
 		_add_node_path_field(container, "Audio Player:", action, "player_path",
@@ -662,10 +706,22 @@ func build_property_fields(container: VBoxContainer, action: ESAction) -> void:
 		_add_string_field(container, "Variable Name:", action, "variable_name",
 			"Name for this variable (e.g., score, health, level)")
 		_add_enum_field(container, "Operation:", action, "operation",
-			["Set", "Add", "Subtract", "Multiply", "Toggle"])
-		if action.operation != ESVariableAction.VariableOp.TOGGLE:
+			["Set", "Add", "Subtract", "Multiply", "Toggle", "Append", "Remove", "Clear Array"])
+		_add_enum_field(container, "Scope:", action, "scope",
+			["Local (this controller)", "Global (survives scene changes)"])
+		if action.operation not in [ESVariableAction.VariableOp.TOGGLE,
+				ESVariableAction.VariableOp.CLEAR_ARRAY]:
 			_add_string_field(container, "Value:", action, "value",
-				"Value to set/add/subtract/multiply (number, string, or true/false)")
+				"Value to set/add/subtract/multiply/append/remove (number, string, or true/false)")
+
+	elif action is ESCallMethodAction:
+		_add_node_path_field(container, "Target Node:", action, "target_path",
+			"Node to call the method on (leave empty for parent, or $collider)")
+		_add_string_field(container, "Method Name:", action, "method_name",
+			"Name of the method to call (e.g., take_damage, die, queue_free)")
+		_add_string_array_field(container, "Arguments:", action, "arguments",
+			"Method arguments (comma-separated)")
+		_add_bool_field(container, "Use Deferred:", action, "use_deferred")
 
 
 # -- Field Helpers (same pattern as condition_dialog.gd) --

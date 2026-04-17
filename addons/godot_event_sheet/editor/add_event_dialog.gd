@@ -89,6 +89,7 @@ const TRIGGER_CATEGORIES := [
 		"label": "📊 Variables",
 		"items": [
 			{"label": "When a variable matches a value", "key": "variable_compare"},
+			{"label": "When an array variable contains a value", "key": "variable_contains"},
 		]
 	},
 	{
@@ -168,12 +169,20 @@ const REACTION_CATEGORIES := [
 			{"label": "Change to a different scene", "key": "scene_change"},
 			{"label": "Show a node", "key": "scene_show"},
 			{"label": "Hide a node", "key": "scene_hide"},
+			{"label": "Pause the game (tree)", "key": "scene_pause"},
+			{"label": "Unpause the game (tree)", "key": "scene_unpause"},
 		]
 	},
 	{
 		"label": "📡 Signals",
 		"items": [
 			{"label": "Emit a signal", "key": "emit_signal"},
+		]
+	},
+	{
+		"label": "🔧 Methods",
+		"items": [
+			{"label": "Call a method on a node", "key": "call_method"},
 		]
 	},
 	{
@@ -203,6 +212,9 @@ const REACTION_CATEGORIES := [
 			{"label": "Subtract from a variable", "key": "var_subtract"},
 			{"label": "Multiply a variable", "key": "var_multiply"},
 			{"label": "Toggle a variable (on/off)", "key": "var_toggle"},
+			{"label": "Append to a variable array", "key": "var_append"},
+			{"label": "Remove from a variable array", "key": "var_remove"},
+			{"label": "Clear a variable array", "key": "var_clear_array"},
 		]
 	},
 ]

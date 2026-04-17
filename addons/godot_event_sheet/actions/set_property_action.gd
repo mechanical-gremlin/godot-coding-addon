@@ -89,7 +89,10 @@ func _set_nested_property(target: Node, parts: PackedStringArray, controller: No
 				push_warning("EventSheet: Unknown Vector2 component '%s'" % final_prop)
 				return
 		# Set the full vector back on the parent.
-		target.set(parts[0], vec)
+		if use_deferred:
+			target.set_deferred(parts[0], vec)
+		else:
+			target.set(parts[0], vec)
 	elif current is Vector3:
 		var vec := current as Vector3
 		var val := float(_resolve_placeholders(value, controller))
@@ -103,7 +106,10 @@ func _set_nested_property(target: Node, parts: PackedStringArray, controller: No
 			_:
 				push_warning("EventSheet: Unknown Vector3 component '%s'" % final_prop)
 				return
-		target.set(parts[0], vec)
+		if use_deferred:
+			target.set_deferred(parts[0], vec)
+		else:
+			target.set(parts[0], vec)
 	elif current is Color:
 		var col := current as Color
 		var val := float(_resolve_placeholders(value, controller))
@@ -115,7 +121,10 @@ func _set_nested_property(target: Node, parts: PackedStringArray, controller: No
 			_:
 				push_warning("EventSheet: Unknown Color component '%s'" % final_prop)
 				return
-		target.set(parts[0], col)
+		if use_deferred:
+			target.set_deferred(parts[0], col)
+		else:
+			target.set(parts[0], col)
 
 
 func _compute_value(current: Variant, controller: Node) -> Variant:
