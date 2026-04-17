@@ -65,7 +65,9 @@ func execute(controller: Node, _delta: float) -> void:
 			2: target.call_deferred(method_name, args[0], args[1])
 			3: target.call_deferred(method_name, args[0], args[1], args[2])
 			4: target.call_deferred(method_name, args[0], args[1], args[2], args[3])
-			_: target.call_deferred(method_name, args[0], args[1], args[2], args[3])
+			_:
+				push_warning("EventSheet: call_deferred supports at most 4 arguments; extra arguments will be dropped.")
+				target.call_deferred(method_name, args[0], args[1], args[2], args[3])
 	else:
 		target.callv(method_name, args)
 

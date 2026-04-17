@@ -100,6 +100,7 @@ func execute(controller: Node, _delta: float) -> void:
 				_set_var(controller, meta_key, current)
 			else:
 				# Convert existing scalar to array and append.
+				push_warning("EventSheet: Variable '%s' is not an array; converting to array." % variable_name)
 				_set_var(controller, meta_key, [current, _auto_convert(value)])
 		VariableOp.REMOVE:
 			var current = _get_current(controller, meta_key, [])
