@@ -10,6 +10,8 @@ enum SceneOp {
 	CHANGE_SCENE, ## Change to a completely different scene
 	SHOW,         ## Make a node visible (visible = true)
 	HIDE,         ## Hide a node (visible = false)
+	PAUSE_TREE,   ## Pause the entire scene tree
+	UNPAUSE_TREE, ## Unpause the entire scene tree
 }
 
 ## Whether to instantiate, destroy, change scene, show, or hide.
@@ -38,6 +40,10 @@ enum SceneOp {
 ## and use_parent_position).
 @export var spawn_at_node_path: NodePath = NodePath("")
 
+## When true, use call_deferred for scene changes to avoid errors when
+## triggered during a physics callback.
+@export var use_deferred: bool = false
+
 
 func get_summary() -> String:
 	match operation:
@@ -54,6 +60,10 @@ func get_summary() -> String:
 		SceneOp.HIDE:
 			var target := str(destroy_target_path) if not destroy_target_path.is_empty() else "parent"
 			return "Hide %s" % target
+		SceneOp.PAUSE_TREE:
+			return "Pause Scene Tree"
+		SceneOp.UNPAUSE_TREE:
+			return "Unpause Scene Tree"
 	return "Scene action"
 
 
@@ -73,6 +83,10 @@ func execute(controller: Node, _delta: float) -> void:
 			_do_set_visible(controller, true)
 		SceneOp.HIDE:
 			_do_set_visible(controller, false)
+		SceneOp.PAUSE_TREE:
+			controller.get_tree().paused = true
+		SceneOp.UNPAUSE_TREE:
+			controller.get_tree().paused = false
 
 
 func _do_instantiate(controller: Node) -> void:
@@ -148,7 +162,10 @@ func _do_change_scene(controller: Node) -> void:
 	if not ResourceLoader.exists(scene_path):
 		push_warning("EventSheet: Scene not found for change: %s" % scene_path)
 		return
-	controller.get_tree().change_scene_to_file(scene_path)
+	if use_deferred:
+		controller.get_tree().change_scene_to_file.call_deferred(scene_path)
+	else:
+		controller.get_tree().change_scene_to_file(scene_path)
 
 
 func _do_set_visible(controller: Node, vis: bool) -> void:

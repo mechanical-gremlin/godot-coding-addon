@@ -383,7 +383,9 @@ func _execute_actions(event: ESEventItem, delta: float, start_index: int = 0) ->
 			# Delta is passed as 0.0 because the original frame delta is stale
 			# by the time the timer fires.
 			get_tree().create_timer(wait_act.wait_time).timeout.connect(
-				func(): _execute_actions(event, 0.0, i + 1)
+				func():
+					if is_instance_valid(self):
+						_execute_actions(event, 0.0, i + 1)
 			)
 			return
 		action.execute(self, delta)

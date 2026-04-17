@@ -23,6 +23,11 @@ enum SetMode {
 ## How to apply the value to the property.
 @export var set_mode: SetMode = SetMode.SET
 
+## When true, use set_deferred() instead of set().
+## Required when changing physics properties (e.g., CollisionShape2D.disabled)
+## during a physics callback to avoid Godot errors.
+@export var use_deferred: bool = false
+
 
 func get_summary() -> String:
 	var target := str(target_path) if not target_path.is_empty() else "parent"
@@ -54,7 +59,10 @@ func _set_simple_property(target: Node, prop: String, controller: Node) -> void:
 
 	var current = target.get(prop)
 	var new_val = _compute_value(current, controller)
-	target.set(prop, new_val)
+	if use_deferred:
+		target.set_deferred(prop, new_val)
+	else:
+		target.set(prop, new_val)
 
 
 func _set_nested_property(target: Node, parts: PackedStringArray, controller: Node) -> void:
