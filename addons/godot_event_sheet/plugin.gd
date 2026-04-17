@@ -25,6 +25,11 @@ func _enter_tree() -> void:
 		preload("res://addons/godot_event_sheet/icons/icon.svg")
 	)
 
+	# Register the global variables autoload if it is not already present.
+	if not ProjectSettings.has_setting("autoload/ESGlobalVariables"):
+		add_autoload_singleton("ESGlobalVariables",
+			"res://addons/godot_event_sheet/runtime/es_global_variables.gd")
+
 	# Create and add the bottom panel editor.
 	_editor_panel = EventSheetEditor.new()
 	_editor_panel.editor_interface = get_editor_interface()
@@ -40,6 +45,10 @@ func _exit_tree() -> void:
 
 	remove_custom_type("EventSheet")
 	remove_custom_type("EventController")
+
+	# Remove the global variables autoload when the plugin is disabled.
+	if ProjectSettings.has_setting("autoload/ESGlobalVariables"):
+		remove_autoload_singleton("ESGlobalVariables")
 
 
 func _handles(object: Object) -> bool:

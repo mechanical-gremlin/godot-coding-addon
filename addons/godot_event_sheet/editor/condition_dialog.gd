@@ -121,6 +121,7 @@ const CONDITION_CATEGORIES := [
 		"label": "📊 Variables",
 		"items": [
 			{"label": "Variable: Compare Value", "key": "variable_compare"},
+			{"label": "Variable: Array Contains", "key": "variable_contains"},
 		]
 	},
 	{
@@ -196,6 +197,7 @@ const CONDITION_TYPES := {
 	"Input: Joypad Button Held": "joypad_button_held",
 	"Input: Joypad Connected": "joypad_connected",
 	"Variable: Compare Value": "variable_compare",
+	"Variable: Array Contains": "variable_contains",
 	"Hover: Mouse Entered": "hover_mouse_entered",
 	"Hover: Mouse Exited": "hover_mouse_exited",
 	"Hover: Is Hovered": "hover_is_hovered",
@@ -425,6 +427,10 @@ func create_condition_from_key(key: String) -> ESCondition:
 			return c
 		"variable_compare":
 			return ESVariableCondition.new()
+		"variable_contains":
+			var c := ESVariableCondition.new()
+			c.compare_op = ESVariableCondition.CompareOp.CONTAINS
+			return c
 		"hover_mouse_entered":
 			var c := ESMouseHoverCondition.new()
 			c.hover_type = ESMouseHoverCondition.HoverType.MOUSE_ENTERED
@@ -519,6 +525,8 @@ func build_property_fields(container: VBoxContainer, condition: ESCondition) -> 
 			"Group name — connect ALL nodes in this group as detectors (e.g., hazards, saws)")
 		_add_string_field(container, "Filter Group:", condition, "filter_group",
 			"Only trigger for colliding nodes in this group (leave empty for all)")
+		_add_string_field(container, "Filter Class:", condition, "filter_class",
+			"Only trigger for colliding nodes of this class (e.g., Player, CharacterBody2D)")
 
 	elif condition is ESButtonCondition:
 		_add_node_path_field(container, "Button Node:", condition, "button_path",
@@ -612,9 +620,12 @@ func build_property_fields(container: VBoxContainer, condition: ESCondition) -> 
 		_add_string_field(container, "Variable Name:", condition, "variable_name",
 			"Name of the variable (must match a Variable action)")
 		_add_enum_field(container, "Comparison:", condition, "compare_op",
-			["== (Equal)", "!= (Not Equal)", "> (Greater)", "< (Less)", ">= (Greater/Equal)", "<= (Less/Equal)"])
+			["== (Equal)", "!= (Not Equal)", "> (Greater)", "< (Less)",
+			 ">= (Greater/Equal)", "<= (Less/Equal)", "Contains (in array)"])
 		_add_string_field(container, "Compare Value:", condition, "compare_value",
 			"Value to compare against (number, string, true/false)")
+		_add_enum_field(container, "Scope:", condition, "scope",
+			["Local (this controller)", "Global (survives scene changes)"])
 
 	elif condition is ESMouseHoverCondition:
 		_add_enum_field(container, "Hover Event:", condition, "hover_type",

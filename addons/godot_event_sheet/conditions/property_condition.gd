@@ -66,6 +66,10 @@ func evaluate(controller: Node, _delta: float) -> bool:
 func _resolve_node(controller: Node) -> Node:
 	if node_path.is_empty():
 		return controller.get_parent()
+	var path_str := str(node_path)
+	if path_str == "$collider":
+		var meta_val = controller.get_meta(&"_es_last_collided_node", null)
+		return meta_val if meta_val is Node else null
 	return controller.get_node_or_null(node_path)
 
 

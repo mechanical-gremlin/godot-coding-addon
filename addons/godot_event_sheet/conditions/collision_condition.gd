@@ -29,6 +29,12 @@ enum CollisionType {
 ## Leave empty to trigger for any collision.
 @export var filter_group: String = ""
 
+## Optional: only trigger if the colliding node matches this class name
+## (e.g., "Player", "CharacterBody2D"). Uses is_class() for built-in types
+## and get_script().get_global_name() for script class_name types.
+## Leave empty to trigger for any collision.
+@export var filter_class: String = ""
+
 ## Internal flag set by the runtime when a matching collision occurs.
 var _triggered: bool = false
 
@@ -44,6 +50,8 @@ func get_summary() -> String:
 	var desc := "Collision: %s" % type_names[collision_type]
 	if not filter_group.is_empty():
 		desc += " (filter group: %s)" % filter_group
+	if not filter_class.is_empty():
+		desc += " (filter class: %s)" % filter_class
 	if not detector_group.is_empty():
 		desc += " on group '%s'" % detector_group
 	elif not detector_path.is_empty():
@@ -72,14 +80,14 @@ func evaluate(controller: Node, _delta: float) -> bool:
 
 ## Called by the EventController when a collision signal fires.
 func _on_collision(node: Node) -> void:
-	if filter_group.is_empty() or node.is_in_group(filter_group):
+	if _passes_filters(node):
 		colliding_node = node
 		_triggered = true
 
 
 ## Called when a body/area enters — used for IS_OVERLAPPING tracking.
 func _on_overlap_entered(node: Node) -> void:
-	if filter_group.is_empty() or node.is_in_group(filter_group):
+	if _passes_filters(node):
 		if not _overlapping_nodes.has(node):
 			_overlapping_nodes.append(node)
 		colliding_node = node
@@ -90,3 +98,16 @@ func _on_overlap_exited(node: Node) -> void:
 	_overlapping_nodes.erase(node)
 	if _overlapping_nodes.is_empty():
 		colliding_node = null
+
+
+## Check whether a node passes both the group and class filters.
+func _passes_filters(node: Node) -> bool:
+	if not filter_group.is_empty() and not node.is_in_group(filter_group):
+		return false
+	if not filter_class.is_empty():
+		# Check built-in class first, then script class_name.
+		if not node.is_class(filter_class):
+			var script = node.get_script()
+			if script == null or script.get_global_name() != filter_class:
+				return false
+	return true

@@ -15,11 +15,20 @@ enum CompareOp {
 	LESS,          ## <
 	GREATER_EQUAL, ## >=
 	LESS_EQUAL,    ## <=
+	CONTAINS,      ## Array contains value
+}
+
+enum VariableScope {
+	LOCAL,  ## Stored on the EventController (dies with the node/scene).
+	GLOBAL, ## Stored in the ESGlobalVariables autoload (survives scene changes).
 }
 
 ## Name of the variable to read (must match the Variable action's
 ## variable_name).
 @export var variable_name: String = ""
+
+## Whether to read from local (controller metadata) or global (autoload).
+@export var scope: VariableScope = VariableScope.LOCAL
 
 ## The comparison operator to use.
 @export var compare_op: CompareOp = CompareOp.EQUAL
@@ -38,6 +47,7 @@ func get_summary() -> String:
 		CompareOp.LESS:          op_str = "<"
 		CompareOp.GREATER_EQUAL: op_str = ">="
 		CompareOp.LESS_EQUAL:    op_str = "<="
+		CompareOp.CONTAINS:      op_str = "contains"
 	return "Variable '%s' %s %s" % [variable_name, op_str, compare_value]
 
 
@@ -50,10 +60,25 @@ func evaluate(controller: Node, _delta: float) -> bool:
 		return false
 
 	var meta_key := &"_es_var_%s" % variable_name
-	var current = controller.get_meta(meta_key, null)
+	var current = null
+	if scope == VariableScope.GLOBAL:
+		var globals = controller.get_node_or_null("/root/ESGlobalVariables")
+		if globals:
+			current = globals.get_variable(str(meta_key), null)
+	else:
+		current = controller.get_meta(meta_key, null)
 
 	# Determine types for comparison.
 	var ref = _auto_convert(compare_value)
+
+	# Handle CONTAINS check for arrays.
+	if compare_op == CompareOp.CONTAINS:
+		if current is Array:
+			return current.has(ref)
+		if current == null:
+			return false
+		# For non-array values, check equality.
+		return current == ref
 
 	# If the variable hasn't been set yet, use a sensible default.
 	if current == null:

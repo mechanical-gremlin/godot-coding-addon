@@ -57,6 +57,8 @@ func execute(controller: Node, _delta: float) -> void:
 		if use_velocity and target is CharacterBody2D:
 			(target as CharacterBody2D).velocity = dir * force
 			(target as CharacterBody2D).move_and_slide()
+		elif target is RigidBody2D:
+			(target as RigidBody2D).apply_central_impulse(dir * force)
 		else:
 			# Instant position offset (one-frame impulse).
 			# Scaled by 0.1 so that a force of 300 equals ~30 pixels of displacement.
@@ -66,6 +68,8 @@ func execute(controller: Node, _delta: float) -> void:
 		if use_velocity and target is CharacterBody3D:
 			(target as CharacterBody3D).velocity = dir * force
 			(target as CharacterBody3D).move_and_slide()
+		elif target is RigidBody3D:
+			(target as RigidBody3D).apply_central_impulse(dir * force)
 		else:
 			# Instant position offset (one-frame impulse).
 			(target as Node3D).position += dir * force * 0.1
