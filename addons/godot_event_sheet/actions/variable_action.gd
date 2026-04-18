@@ -22,6 +22,7 @@ enum VariableOp {
 	APPEND,      ## Append a value to the variable as an array.
 	REMOVE,      ## Remove a value from the variable array.
 	CLEAR_ARRAY, ## Clear the variable array (set to empty array).
+	DIVIDE,      ## Divide the variable by a numeric value (safe: no-op if value is 0).
 }
 
 enum VariableScope {
@@ -61,6 +62,8 @@ func get_summary() -> String:
 			return "Remove %s from variable '%s'" % [value, variable_name]
 		VariableOp.CLEAR_ARRAY:
 			return "Clear array variable '%s'" % variable_name
+		VariableOp.DIVIDE:
+			return "Divide variable '%s' by %s" % [variable_name, value]
 	return "Variable action"
 
 
@@ -90,6 +93,13 @@ func execute(controller: Node, _delta: float) -> void:
 			var current = _get_current(controller, meta_key, 0.0)
 			var numeric_val := _to_float(value)
 			_set_var(controller, meta_key, float(current) * numeric_val)
+		VariableOp.DIVIDE:
+			var current = _get_current(controller, meta_key, 0.0)
+			var numeric_val := _to_float(value)
+			if numeric_val == 0.0:
+				push_warning("EventSheet: Variable DIVIDE by zero ignored for '%s'" % variable_name)
+			else:
+				_set_var(controller, meta_key, float(current) / numeric_val)
 		VariableOp.TOGGLE:
 			var current = _get_current(controller, meta_key, false)
 			_set_var(controller, meta_key, not _to_bool(current))

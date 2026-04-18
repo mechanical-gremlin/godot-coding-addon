@@ -42,6 +42,10 @@ const ESVisibilityCondition := preload("res://addons/godot_event_sheet/condition
 const ESTreeLifecycleCondition := preload("res://addons/godot_event_sheet/conditions/tree_lifecycle_condition.gd")
 const ESClickCondition := preload("res://addons/godot_event_sheet/conditions/click_condition.gd")
 
+# Preloaded action scripts for required-field validation.
+const ESCallMethodAction := preload("res://addons/godot_event_sheet/actions/call_method_action.gd")
+const ESEmitSignalAction := preload("res://addons/godot_event_sheet/actions/emit_signal_action.gd")
+
 
 func _ready() -> void:
 	_build_ui()
@@ -341,6 +345,14 @@ func _create_event_row(event: ESEventItem, index: int) -> PanelContainer:
 	)
 	header.add_child(name_edit)
 
+	# Required-field warning badge.
+	if _has_missing_required_fields(event):
+		var warn_label := Label.new()
+		warn_label.text = "⚠️"
+		warn_label.tooltip_text = "This event has one or more required fields that are empty or invalid. Open the condition/action to fix them."
+		warn_label.add_theme_color_override("font_color", Color(1.0, 0.65, 0.1))
+		header.add_child(warn_label)
+
 	# Spacer.
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -428,6 +440,17 @@ func _create_event_row(event: ESEventItem, index: int) -> PanelContainer:
 		return panel
 
 	# -- Conditions & Actions columns --
+	# Contradictory condition combination warning.
+	if _has_contradictory_conditions(event):
+		var warn_bar := HBoxContainer.new()
+		main_vbox.add_child(warn_bar)
+		var warn_lbl := Label.new()
+		warn_lbl.text = '⚠️ Mixing "Every Frame" with a signal-based condition (AND logic) may not work as expected. Signal conditions only fire once per trigger.'
+		warn_lbl.add_theme_color_override("font_color", Color(1.0, 0.65, 0.1))
+		warn_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		warn_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		warn_bar.add_child(warn_lbl)
+
 	# For callback-based events the condition is decorative (driven by Godot
 	# callbacks), so we show a compact read-only chip instead of the full
 	# conditions column.
@@ -1077,3 +1100,57 @@ func _migrate_node_paths(resource: Resource, old_path: String, new_path: String)
 				resource.set(prop["name"], NodePath(new_path))
 				changed = true
 	return changed
+
+
+# -- Required Field & Contradiction Helpers --
+
+## Returns true if any condition or action in the event has a missing required field.
+## Validates:
+##   - ESButtonCondition.button_path (must not be empty)
+##   - ESSignalCondition.signal_name (must not be empty)
+##   - ESTimerCondition.wait_time (must be > 0)
+##   - ESCallMethodAction.method_name (must not be empty)
+##   - ESEmitSignalAction.signal_name (must not be empty)
+func _has_missing_required_fields(event: ESEventItem) -> bool:
+	for cond_res in event.conditions:
+		if cond_res is ESButtonCondition:
+			if (cond_res as ESButtonCondition).button_path.is_empty():
+				return true
+		elif cond_res is ESSignalCondition:
+			if (cond_res as ESSignalCondition).signal_name.is_empty():
+				return true
+		elif cond_res is ESTimerCondition:
+			if (cond_res as ESTimerCondition).wait_time <= 0.0:
+				return true
+	for action_res in event.actions:
+		if action_res is ESCallMethodAction:
+			if (action_res as ESCallMethodAction).method_name.is_empty():
+				return true
+		elif action_res is ESEmitSignalAction:
+			if (action_res as ESEmitSignalAction).signal_name.is_empty():
+				return true
+	return false
+
+
+## Returns true when an event uses AND logic and mixes a "Every Frame" or
+## "Every Physics Step" lifecycle condition with at least one signal-driven
+## condition (collision, signal, timer, button, hover, animation, visibility, click).
+## Such combinations almost never do what students intend.
+func _has_contradictory_conditions(event: ESEventItem) -> bool:
+	if event.logic_mode != ESEventItem.LogicMode.AND:
+		return false
+	var has_frame_or_physics := false
+	var has_signal_driven := false
+	for cond_res in event.conditions:
+		if cond_res is ESLifecycleCondition:
+			var lc := cond_res as ESLifecycleCondition
+			if lc.lifecycle_type in [
+					ESLifecycleCondition.LifecycleType.PROCESS,
+					ESLifecycleCondition.LifecycleType.PHYSICS_PROCESS]:
+				has_frame_or_physics = true
+		elif cond_res is ESCollisionCondition or cond_res is ESSignalCondition \
+				or cond_res is ESTimerCondition or cond_res is ESButtonCondition \
+				or cond_res is ESMouseHoverCondition or cond_res is ESAnimationCondition \
+				or cond_res is ESVisibilityCondition or cond_res is ESClickCondition:
+			has_signal_driven = true
+	return has_frame_or_physics and has_signal_driven

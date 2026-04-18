@@ -9,7 +9,10 @@ A visual **Event Sheet** programming addon for Godot 4.5, designed for beginning
 - **Full Signal Support** — Create, emit, and listen for custom signals between nodes
 - **Collision Detection** — Detect body and area collisions with group filtering; persistent overlap tracking
 - **Input Handling** — Respond to keyboard input, action presses, and held keys; UI button clicks
-- **Property Control** — Read, set, add, subtract, multiply, or toggle any node property; dynamic text with live value placeholders
+- **Property Control** — Read, set, add, subtract, multiply, divide, or toggle any node property; dynamic text with live value placeholders; clamp to min/max range
+- **Variable System (Counters & Flags)** — Local and global variables with set, add, subtract, multiply, divide, toggle, and array operations; persists across scene changes when global
+- **Math Functions** — Apply abs, floor, ceil, round, sqrt, sin, cos, or lerp to any numeric property
+- **Repeat N Times** — Repeat a block of subsequent actions a specified number of times
 - **Movement** — Translate, set position, move toward targets or dynamic nodes, physics velocity (2D and 3D)
 - **Knockback** — Compute directional knockback between two nodes and push via velocity or position
 - **Timers** — Repeating and one-shot timers without writing code
@@ -79,8 +82,16 @@ Click **+ Add Event** to open the event wizard. Each event uses a simple **"When
 | **Lifecycle** | On Ready | Triggers once when the scene loads |
 | **Lifecycle** | Every Frame | Triggers every frame (like `_process`) |
 | **Lifecycle** | Every Physics Frame | Triggers every physics frame (like `_physics_process`) |
-| **State** | Check State | Checks if a named state on a node equals (or doesn't equal) a given value — for turn-based games, boss phases, game flow |
+| **Game State (Phases)** | Check State | Checks if a named state on a node equals (or doesn't equal) a given value — for turn-based games, boss phases, game flow |
 | **Utility** | Node Count in Group | Checks the count of nodes in a group (==, !=, >, <, >=, <=) — for level-complete, wave-clear, game-over detection |
+| **Counters & Flags** | Compare Variable | Checks a local or global variable against a value |
+| **Counters & Flags** | Variable Contains | Checks if an array variable contains a value |
+| **Physics** | Is On Floor / Wall / Ceiling | Checks CharacterBody2D/3D physics state |
+| **Hover & Click** | Mouse Entered/Exited/Hovered | Fires when the mouse enters, exits, or is over a node |
+| **Hover & Click** | Object Clicked/Released | Fires when a CollisionObject2D/3D is clicked |
+| **Animation** | Animation Finished | Fires when an AnimationPlayer or AnimatedSprite2D finishes playing |
+| **Visibility** | Appeared/Left/Is On Screen | Fires when a node enters or leaves the viewport |
+| **Scene Tree** | Added/Removed/Child Added/Removed | Fires on scene tree events for a node |
 
 ## Available Actions
 
@@ -92,19 +103,34 @@ Click **+ Add Event** to open the event wizard. Each event uses a simple **"When
 | **Movement** | Move Toward Node | Move a node toward another node's live position (for chasing enemies) |
 | **Movement** | Set Velocity (Physics) | Set `CharacterBody2D.velocity` and call `move_and_slide()` for wall-colliding movement |
 | **Movement** | Apply Knockback | Push a target node away from a source node (supports `$collider` as target) |
+| **Movement** | Rotate / Aim | Rotate a node by a given angle, aim at a point/node, or track input direction |
+| **Movement** | Pathfind (A\*) | Move a node toward a target along a NavigationAgent2D/3D path |
 | **Properties** | Set Value | Set a property to a value; supports `{../Node:prop}` placeholders for live HUD text |
-| **Properties** | Add / Subtract / Multiply | Modify a numeric property |
+| **Properties** | Add / Subtract / Multiply / Divide | Modify a numeric property (divide safely guards against division by zero) |
 | **Properties** | Toggle | Toggle a boolean property |
+| **Properties** | Clamp | Keep a property within a min/max range |
+| **Counters & Flags** | Set / Add / Subtract / Multiply / Divide | Modify a named variable (local or global); divide safely guards against zero |
+| **Counters & Flags** | Toggle | Flip a boolean variable |
+| **Counters & Flags** | Append / Remove / Clear Array | Manage array variables |
 | **Signals** | Emit Signal | Emit a signal (with optional arguments) on any node |
-| **Animation** | Play / Stop / Pause | Control AnimationPlayer or AnimatedSprite2D |
+| **Animation** | Play / Stop / Pause / Play Backwards | Control AnimationPlayer or AnimatedSprite2D |
 | **Scene** | Create Instance | Instantiate a scene; can spawn at a Marker2D's position and rotation |
 | **Scene** | Destroy Node | Remove a node from the scene tree (supports `$collider`) |
 | **Scene** | Change Scene | Transition to a completely different scene file |
-| **Scene** | Show Node | Make a node visible (`visible = true`) |
-| **Scene** | Hide Node | Make a node invisible (`visible = false`) |
+| **Scene** | Show / Hide Node | Toggle a node's visibility |
+| **Scene** | Pause / Unpause Tree | Freeze or resume the entire scene tree |
 | **Audio** | Play / Stop Sound | Control AudioStreamPlayer nodes |
-| **State** | Set State | Assign a named state value to a node (e.g., "player_turn", "phase_2", "game_over") |
-| **State** | Clear State | Remove a named state from a node |
+| **Camera** | Follow Target | Make a Camera2D/3D follow a node smoothly |
+| **Camera** | Set Zoom | Zoom the camera in or out |
+| **Camera** | Shake | Apply a screen-shake effect |
+| **Game State (Phases)** | Set State | Assign a named state value to a node |
+| **Game State (Phases)** | Clear State | Remove a named state from a node |
+| **Timing** | Wait (Delay) | Pause action execution and resume after a delay |
+| **Timing** | Repeat N Times | Execute the remaining actions in the event N times synchronously |
+| **Math** | Apply Math Function | Apply abs, floor, ceil, round, sqrt, sin, cos, or lerp to a numeric property |
+| **Utility** | Random Float / Int / Position | Set a property or variable to a random value within a range |
+| **Utility** | Add / Remove from Group | Dynamically manage group membership at runtime |
+| **Methods** | Call Method | Call any method on a node with up to 4 arguments |
 | **Debug** | Print Message | Print to console (supports `{name}`, `{position}`, `{delta}` placeholders) |
 
 ## Referencing the Collided Node with `$collider`
@@ -211,6 +237,26 @@ Event: "All Bricks Destroyed"
   Action: Scene - Change Scene to res://scenes/win_screen.tscn
 ```
 
+## UX Notes for Educators
+
+### Properties vs. Variables (Counters & Flags) vs. Game State (Phases)
+
+These three systems look similar but serve different purposes:
+
+| System | Best For | How Values Are Stored | Persists Across Scenes? |
+|--------|----------|----------------------|------------------------|
+| **Properties** | Node attributes (position, health, speed, visible) | On the node itself (GDScript property) | Yes — as long as the node exists |
+| **Counters & Flags** | Score, coins, flags ("has_sword"), counters | In EventController metadata; optionally global | Only when set to **Global** scope |
+| **Game State (Phases)** | Game phase / mode ("phase_1", "game_over", "boss_fight") | As named metadata on any node | Yes — as long as the node exists |
+
+**Teaching tip:** Use **Properties** when you want to change something the player can see or that Godot already tracks (like `position` or `health`). Use **Counters & Flags** for your own score and flag variables. Use **Game State** to control which "chapter" the game is in — e.g., a boss cycle, a turn-based phase, or a power-up state.
+
+### Avoiding Common Mistakes
+
+- ⚠️ **Don't mix "Every Frame" with signal-driven conditions in AND mode.** A signal fires once per event (e.g., when a collision happens), but "Every Frame" checks every frame. The editor will warn you when it detects this combination.
+- ⚠️ **Fill in required fields.** Some conditions/actions need specific values (button path, signal name, wait time). The editor shows an ⚠️ badge when a required field is empty.
+- ⚠️ **Detector Node vs. Group is mutually exclusive.** For collision conditions, pick either "Specific Node" or "All Nodes in Group" — the editor shows only one field at a time to avoid confusion.
+
 ## Project Structure
 
 ```
@@ -235,12 +281,24 @@ addons/godot_event_sheet/
 ├── actions/                # Action implementations
 │   ├── move_action.gd
 │   ├── knockback_action.gd
+│   ├── rotate_action.gd
+│   ├── pathfinding_action.gd
 │   ├── set_property_action.gd
+│   ├── clamp_action.gd
 │   ├── emit_signal_action.gd
 │   ├── animation_action.gd
 │   ├── scene_action.gd
 │   ├── sound_action.gd
 │   ├── state_action.gd
+│   ├── variable_action.gd
+│   ├── camera_action.gd
+│   ├── gravity_action.gd
+│   ├── random_action.gd
+│   ├── group_action.gd
+│   ├── call_method_action.gd
+│   ├── wait_action.gd
+│   ├── repeat_action.gd      ← NEW: Repeat N Times
+│   ├── math_action.gd        ← NEW: Apply Math Function
 │   └── print_action.gd
 ├── runtime/
 │   └── event_controller.gd # Runtime event processor node

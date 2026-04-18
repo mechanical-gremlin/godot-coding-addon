@@ -80,13 +80,13 @@ const TRIGGER_CATEGORIES := [
 		]
 	},
 	{
-		"label": "🔀 State",
+		"label": "🔀 Game State (Phases)",
 		"items": [
 			{"label": "When the game state matches a value", "key": "state_check"},
 		]
 	},
 	{
-		"label": "📊 Variables",
+		"label": "📊 Counters & Flags",
 		"items": [
 			{"label": "When a variable matches a value", "key": "variable_compare"},
 			{"label": "When an array variable contains a value", "key": "variable_contains"},
@@ -139,6 +139,8 @@ const REACTION_CATEGORIES := [
 			{"label": "Set velocity (physics movement)", "key": "move_velocity"},
 			{"label": "Apply gravity (platformer physics)", "key": "gravity"},
 			{"label": "Knock back an object", "key": "knockback"},
+			{"label": "Rotate / aim the object", "key": "rotate"},
+			{"label": "Pathfind toward a target (A*)", "key": "pathfind"},
 		]
 	},
 	{
@@ -148,6 +150,7 @@ const REACTION_CATEGORIES := [
 			{"label": "Add to a property", "key": "prop_add"},
 			{"label": "Subtract from a property", "key": "prop_subtract"},
 			{"label": "Multiply a property", "key": "prop_multiply"},
+			{"label": "Divide a property", "key": "prop_divide"},
 			{"label": "Toggle a property (on/off)", "key": "prop_toggle"},
 			{"label": "Clamp a property (min/max)", "key": "prop_clamp"},
 		]
@@ -192,7 +195,7 @@ const REACTION_CATEGORIES := [
 		]
 	},
 	{
-		"label": "🔀 State",
+		"label": "🔀 Game State (Phases)",
 		"items": [
 			{"label": "Set a game state", "key": "state_set"},
 			{"label": "Clear a game state", "key": "state_clear"},
@@ -202,19 +205,37 @@ const REACTION_CATEGORIES := [
 		"label": "⏲ Timing",
 		"items": [
 			{"label": "Wait (delay) before next actions", "key": "wait"},
+			{"label": "Repeat actions N times", "key": "repeat"},
 		]
 	},
 	{
-		"label": "📊 Variables",
+		"label": "📊 Counters & Flags",
 		"items": [
 			{"label": "Set a variable", "key": "var_set"},
 			{"label": "Add to a variable", "key": "var_add"},
 			{"label": "Subtract from a variable", "key": "var_subtract"},
 			{"label": "Multiply a variable", "key": "var_multiply"},
+			{"label": "Divide a variable", "key": "var_divide"},
 			{"label": "Toggle a variable (on/off)", "key": "var_toggle"},
 			{"label": "Append to a variable array", "key": "var_append"},
 			{"label": "Remove from a variable array", "key": "var_remove"},
 			{"label": "Clear a variable array", "key": "var_clear_array"},
+		]
+	},
+	{
+		"label": "📷 Camera",
+		"items": [
+			{"label": "Camera: Follow a target", "key": "camera_follow"},
+			{"label": "Camera: Set zoom level", "key": "camera_zoom"},
+			{"label": "Camera: Shake the camera", "key": "camera_shake"},
+		]
+	},
+	{
+		"label": "🎲 Utility",
+		"items": [
+			{"label": "Set a random value", "key": "random_float"},
+			{"label": "Add a node to a group", "key": "group_add"},
+			{"label": "Remove a node from a group", "key": "group_remove"},
 		]
 	},
 ]
