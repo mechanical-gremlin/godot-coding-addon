@@ -548,12 +548,12 @@ func build_property_fields(container: VBoxContainer, condition: ESCondition) -> 
 		# Determine initial mode from current condition state.
 		var initial_mode := 0 if condition.detector_group.is_empty() else 1
 		detect_mode_btn.selected = initial_mode
-		node_row.visible = (initial_mode == 0)
-		group_row.visible = (initial_mode == 1)
+		node_row.visible = initial_mode == 0
+		group_row.visible = initial_mode == 1
 
 		detect_mode_btn.item_selected.connect(func(idx: int):
-			node_row.visible = (idx == 0)
-			group_row.visible = (idx == 1)
+			node_row.visible = idx == 0
+			group_row.visible = idx == 1
 			if idx == 0:
 				condition.detector_group = ""
 			else:

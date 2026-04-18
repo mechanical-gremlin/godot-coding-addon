@@ -59,7 +59,7 @@ func execute(controller: Node, _delta: float) -> void:
 
 	var current = target.get(property_name)
 	if current == null:
-		push_warning("EventSheet: MathAction – property '%s' not found on %s" % [property_name, target.name])
+		push_warning("EventSheet: MathAction: property '%s' not found on %s" % [property_name, target.name])
 		return
 
 	var val := float(current)

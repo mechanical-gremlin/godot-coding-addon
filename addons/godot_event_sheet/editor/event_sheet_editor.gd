@@ -349,7 +349,7 @@ func _create_event_row(event: ESEventItem, index: int) -> PanelContainer:
 	if _has_missing_required_fields(event):
 		var warn_label := Label.new()
 		warn_label.text = "⚠️"
-		warn_label.tooltip_text = "⚠️ This event has one or more required fields that are empty or invalid. Open the condition/action to fix them."
+		warn_label.tooltip_text = "This event has one or more required fields that are empty or invalid. Open the condition/action to fix them."
 		warn_label.add_theme_color_override("font_color", Color(1.0, 0.65, 0.1))
 		header.add_child(warn_label)
 
@@ -445,7 +445,7 @@ func _create_event_row(event: ESEventItem, index: int) -> PanelContainer:
 		var warn_bar := HBoxContainer.new()
 		main_vbox.add_child(warn_bar)
 		var warn_lbl := Label.new()
-		warn_lbl.text = "⚠️ Mixing \"Every Frame\" with a signal-based condition (AND logic) may not work as expected. Signal conditions only fire once per trigger."
+		warn_lbl.text = '⚠️ Mixing "Every Frame" with a signal-based condition (AND logic) may not work as expected. Signal conditions only fire once per trigger.'
 		warn_lbl.add_theme_color_override("font_color", Color(1.0, 0.65, 0.1))
 		warn_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		warn_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL

@@ -404,7 +404,7 @@ func _execute_actions_range(event: ESEventItem, delta: float, from_idx: int, to_
 		var action := event.actions[i] as ESAction
 		if not action:
 			continue
-		# Skip nested Wait/Repeat inside a repeat block to avoid infinite loops.
+		# Skip nested Wait/Repeat actions to avoid unintended nested repetition behavior.
 		if action is ESWaitAction or action is ESRepeatAction:
 			continue
 		action.execute(self, delta)

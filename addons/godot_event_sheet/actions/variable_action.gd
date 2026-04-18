@@ -97,7 +97,7 @@ func execute(controller: Node, _delta: float) -> void:
 			var current = _get_current(controller, meta_key, 0.0)
 			var numeric_val := _to_float(value)
 			if numeric_val == 0.0:
-				push_warning("EventSheet: Variable DIVIDE by zero ignored for '%s'." % variable_name)
+				push_warning("EventSheet: Variable DIVIDE by zero ignored for '%s'" % variable_name)
 			else:
 				_set_var(controller, meta_key, float(current) / numeric_val)
 		VariableOp.TOGGLE:
