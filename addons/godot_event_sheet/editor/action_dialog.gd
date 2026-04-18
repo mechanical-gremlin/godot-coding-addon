@@ -22,6 +22,8 @@ const ESClampAction := preload("res://addons/godot_event_sheet/actions/clamp_act
 const ESWaitAction := preload("res://addons/godot_event_sheet/actions/wait_action.gd")
 const ESVariableAction := preload("res://addons/godot_event_sheet/actions/variable_action.gd")
 const ESCallMethodAction := preload("res://addons/godot_event_sheet/actions/call_method_action.gd")
+const ESRepeatAction := preload("res://addons/godot_event_sheet/actions/repeat_action.gd")
+const ESMathAction := preload("res://addons/godot_event_sheet/actions/math_action.gd")
 const PropertyHints := preload("res://addons/godot_event_sheet/editor/property_hints.gd")
 
 var _action_list: Tree
@@ -69,6 +71,7 @@ const ACTION_CATEGORIES := [
 			{"label": "Property: Add Value", "key": "prop_add"},
 			{"label": "Property: Subtract Value", "key": "prop_subtract"},
 			{"label": "Property: Multiply Value", "key": "prop_multiply"},
+			{"label": "Property: Divide Value", "key": "prop_divide"},
 			{"label": "Property: Toggle (Boolean)", "key": "prop_toggle"},
 			{"label": "Property: Clamp (Min/Max)", "key": "prop_clamp"},
 		]
@@ -135,7 +138,7 @@ const ACTION_CATEGORIES := [
 		]
 	},
 	{
-		"label": "🔀 State",
+		"label": "🔀 Game State (Phases)",
 		"items": [
 			{"label": "State: Set State", "key": "state_set"},
 			{"label": "State: Clear State", "key": "state_clear"},
@@ -145,19 +148,27 @@ const ACTION_CATEGORIES := [
 		"label": "⏲ Timing",
 		"items": [
 			{"label": "Timing: Wait (Delay)", "key": "wait"},
+			{"label": "Timing: Repeat N Times", "key": "repeat"},
 		]
 	},
 	{
-		"label": "📊 Variables",
+		"label": "📊 Counters & Flags",
 		"items": [
 			{"label": "Variable: Set Value", "key": "var_set"},
 			{"label": "Variable: Add Value", "key": "var_add"},
 			{"label": "Variable: Subtract Value", "key": "var_subtract"},
 			{"label": "Variable: Multiply Value", "key": "var_multiply"},
+			{"label": "Variable: Divide Value", "key": "var_divide"},
 			{"label": "Variable: Toggle (Boolean)", "key": "var_toggle"},
 			{"label": "Variable: Append to Array", "key": "var_append"},
 			{"label": "Variable: Remove from Array", "key": "var_remove"},
 			{"label": "Variable: Clear Array", "key": "var_clear_array"},
+		]
+	},
+	{
+		"label": "🔢 Math",
+		"items": [
+			{"label": "Math: Apply Math Function", "key": "math_op"},
 		]
 	},
 ]
@@ -174,6 +185,7 @@ const ACTION_TYPES := {
 	"Property: Add Value": "prop_add",
 	"Property: Subtract Value": "prop_subtract",
 	"Property: Multiply Value": "prop_multiply",
+	"Property: Divide Value": "prop_divide",
 	"Property: Toggle (Boolean)": "prop_toggle",
 	"Signal: Emit Signal": "emit_signal",
 	"Animation: Play": "anim_play",
@@ -205,10 +217,12 @@ const ACTION_TYPES := {
 	"State: Clear State": "state_clear",
 	"Property: Clamp (Min/Max)": "prop_clamp",
 	"Timing: Wait (Delay)": "wait",
+	"Timing: Repeat N Times": "repeat",
 	"Variable: Set Value": "var_set",
 	"Variable: Add Value": "var_add",
 	"Variable: Subtract Value": "var_subtract",
 	"Variable: Multiply Value": "var_multiply",
+	"Variable: Divide Value": "var_divide",
 	"Variable: Toggle (Boolean)": "var_toggle",
 	"Variable: Append to Array": "var_append",
 	"Variable: Remove from Array": "var_remove",
@@ -216,6 +230,7 @@ const ACTION_TYPES := {
 	"Scene: Pause Tree": "scene_pause",
 	"Scene: Unpause Tree": "scene_unpause",
 	"Method: Call Method": "call_method",
+	"Math: Apply Math Function": "math_op",
 }
 
 
@@ -495,6 +510,18 @@ func create_action_from_key(key: String) -> ESAction:
 			return a
 		"call_method":
 			return ESCallMethodAction.new()
+		"prop_divide":
+			var a := ESSetPropertyAction.new()
+			a.set_mode = ESSetPropertyAction.SetMode.DIVIDE
+			return a
+		"var_divide":
+			var a := ESVariableAction.new()
+			a.operation = ESVariableAction.VariableOp.DIVIDE
+			return a
+		"repeat":
+			return ESRepeatAction.new()
+		"math_op":
+			return ESMathAction.new()
 	return null
 
 
@@ -556,7 +583,7 @@ func build_property_fields(container: VBoxContainer, action: ESAction) -> void:
 		_add_string_field(container, "Value:", action, "value",
 			"Value to set/add. Use {../Node:prop} for live values, e.g., Health: {../Player:health}")
 		_add_enum_field(container, "Mode:", action, "set_mode",
-			["Set", "Add", "Subtract", "Multiply", "Toggle"])
+			["Set", "Add", "Subtract", "Multiply", "Toggle", "Divide"])
 		_add_bool_field(container, "Use Deferred (for physics callbacks):", action, "use_deferred")
 
 	elif action is ESEmitSignalAction:
@@ -569,7 +596,8 @@ func build_property_fields(container: VBoxContainer, action: ESAction) -> void:
 
 	elif action is ESAnimationAction:
 		_add_node_path_field(container, "Player Node:", action, "player_path",
-			"AnimationPlayer or AnimatedSprite2D (leave empty to auto-find)")
+			"AnimationPlayer or AnimatedSprite2D (leave empty to auto-find)",
+			Callable(), ["AnimationPlayer", "AnimatedSprite2D", "AnimatedSprite3D"])
 		_add_string_field(container, "Animation Name:", action, "animation_name",
 			"Name of the animation to play")
 
@@ -581,7 +609,8 @@ func build_property_fields(container: VBoxContainer, action: ESAction) -> void:
 				_add_node_path_field(container, "Parent Node:", action, "parent_path",
 					"Where to add the instance (leave empty for scene root)")
 				_add_node_path_field(container, "Spawn at Marker:", action, "spawn_at_node_path",
-					"Marker2D node — spawns at its position/rotation (overrides below)")
+					"Marker2D node — spawns at its position/rotation (overrides below)",
+					Callable(), ["Marker2D", "Marker3D"])
 				_add_vector2_field(container, "Spawn Position:", action, "spawn_position")
 				_add_bool_field(container, "Use Parent Position:", action, "use_parent_position")
 			ESSceneAction.SceneOp.DESTROY, ESSceneAction.SceneOp.SHOW, ESSceneAction.SceneOp.HIDE:
@@ -596,7 +625,8 @@ func build_property_fields(container: VBoxContainer, action: ESAction) -> void:
 
 	elif action is ESSoundAction:
 		_add_node_path_field(container, "Audio Player:", action, "player_path",
-			"AudioStreamPlayer node (leave empty to auto-find)")
+			"AudioStreamPlayer node (leave empty to auto-find)",
+			Callable(), ["AudioStreamPlayer", "AudioStreamPlayer2D", "AudioStreamPlayer3D"])
 		if action.operation == ESSoundAction.SoundOp.PLAY:
 			_add_string_field(container, "Audio File:", action, "audio_path",
 				"res://path/to/sound.ogg (optional)")
@@ -609,7 +639,8 @@ func build_property_fields(container: VBoxContainer, action: ESAction) -> void:
 
 	elif action is ESGravityAction:
 		_add_node_path_field(container, "Target Node:", action, "target_path",
-			"Node to apply gravity to (leave empty for parent, or ../NodeName)")
+			"Node to apply gravity to (leave empty for parent, or ../NodeName)",
+			Callable(), ["CharacterBody2D", "CharacterBody3D"])
 		_add_float_field(container, "Gravity:", action, "gravity")
 		_add_float_field(container, "Max Fall Speed:", action, "max_fall_speed")
 		_add_bool_field(container, "Call move_and_slide():", action, "call_move_and_slide")
@@ -647,7 +678,8 @@ func build_property_fields(container: VBoxContainer, action: ESAction) -> void:
 
 	elif action is ESCameraAction:
 		_add_node_path_field(container, "Camera Node:", action, "camera_path",
-			"Camera2D node (leave empty to auto-find)")
+			"Camera2D node (leave empty to auto-find)",
+			Callable(), ["Camera2D", "Camera3D"])
 		match action.operation:
 			ESCameraAction.CameraOp.FOLLOW_TARGET:
 				_add_node_path_field(container, "Follow Target:", action, "follow_target_path",
@@ -706,13 +738,13 @@ func build_property_fields(container: VBoxContainer, action: ESAction) -> void:
 		_add_string_field(container, "Variable Name:", action, "variable_name",
 			"Name for this variable (e.g., score, health, level)")
 		_add_enum_field(container, "Operation:", action, "operation",
-			["Set", "Add", "Subtract", "Multiply", "Toggle", "Append", "Remove", "Clear Array"])
+			["Set", "Add", "Subtract", "Multiply", "Toggle", "Append", "Remove", "Clear Array", "Divide"])
 		_add_enum_field(container, "Scope:", action, "scope",
 			["Local (this controller)", "Global (survives scene changes)"])
 		if action.operation not in [ESVariableAction.VariableOp.TOGGLE,
 				ESVariableAction.VariableOp.CLEAR_ARRAY]:
 			_add_string_field(container, "Value:", action, "value",
-				"Value to set/add/subtract/multiply/append/remove (number, string, or true/false)")
+				"Value to set/add/subtract/multiply/divide/append/remove (number, string, or true/false)")
 
 	elif action is ESCallMethodAction:
 		_add_node_path_field(container, "Target Node:", action, "target_path",
@@ -722,6 +754,20 @@ func build_property_fields(container: VBoxContainer, action: ESAction) -> void:
 		_add_string_array_field(container, "Arguments:", action, "arguments",
 			"Method arguments (comma-separated)")
 		_add_bool_field(container, "Use Deferred:", action, "use_deferred")
+
+	elif action is ESRepeatAction:
+		_add_int_field(container, "Repeat Count:", action, "repeat_count")
+
+	elif action is ESMathAction:
+		_add_node_path_field(container, "Target Node:", action, "target_path",
+			"Node to apply math to (leave empty for parent)")
+		_add_string_field(container, "Property Name:", action, "property_name",
+			"e.g., speed, scale.x, health")
+		_add_enum_field(container, "Operation:", action, "operation",
+			["abs", "floor", "ceil", "round", "sqrt", "sin", "cos", "lerp"])
+		if action.operation == ESMathAction.MathOp.LERP:
+			_add_float_field(container, "Lerp Target:", action, "lerp_target")
+			_add_float_field(container, "Lerp Weight (0–1):", action, "lerp_weight")
 
 
 # -- Field Helpers (same pattern as condition_dialog.gd) --
@@ -743,7 +789,8 @@ func _add_string_field(container: VBoxContainer, label_text: String, obj: Object
 
 
 func _add_node_path_field(container: VBoxContainer, label_text: String, obj: Object,
-		prop: String, hint: String = "", on_path_changed: Callable = Callable()) -> void:
+		prop: String, hint: String = "", on_path_changed: Callable = Callable(),
+		filter_classes: Array = []) -> void:
 	var hbox := HBoxContainer.new()
 	container.add_child(hbox)
 	var label := Label.new()
@@ -767,8 +814,8 @@ func _add_node_path_field(container: VBoxContainer, label_text: String, obj: Obj
 		custom_edit.visible = false
 		col.add_child(custom_edit)
 
-		# Populate.
-		var nodes := _get_scene_nodes()
+		# Populate — always include the special sentinel entries first.
+		var nodes := _get_scene_nodes(filter_classes)
 		dropdown.add_item("(leave empty — use parent)")
 		dropdown.add_item("$collider")
 		for node_info in nodes:
@@ -853,6 +900,24 @@ func _add_float_field(container: VBoxContainer, label_text: String, obj: Object,
 	spin.value = obj.get(prop)
 	spin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	spin.value_changed.connect(func(val: float): obj.set(prop, val))
+	hbox.add_child(spin)
+
+
+func _add_int_field(container: VBoxContainer, label_text: String, obj: Object,
+		prop: String) -> void:
+	var hbox := HBoxContainer.new()
+	container.add_child(hbox)
+	var label := Label.new()
+	label.text = label_text
+	label.custom_minimum_size.x = 150
+	hbox.add_child(label)
+	var spin := SpinBox.new()
+	spin.min_value = 0
+	spin.max_value = 9999
+	spin.step = 1
+	spin.value = obj.get(prop)
+	spin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	spin.value_changed.connect(func(val: float): obj.set(prop, int(val)))
 	hbox.add_child(spin)
 
 
@@ -1162,7 +1227,9 @@ func _on_prop_dropdown_item_selected(idx: int, dropdown: OptionButton,
 
 
 ## Walk the scene tree from the controller's owner and return node info entries.
-func _get_scene_nodes() -> Array:
+## [param filter_classes] restricts results to nodes matching at least one class
+## in the list.  Empty array = no filter (show all nodes).
+func _get_scene_nodes(filter_classes: Array = []) -> Array:
 	var result := []
 	if not _controller or not is_instance_valid(_controller):
 		return result
@@ -1171,24 +1238,33 @@ func _get_scene_nodes() -> Array:
 	if not scene_root:
 		return result
 
-	_walk_scene_tree(scene_root, result)
+	_walk_scene_tree(scene_root, result, filter_classes)
 	return result
 
 
-func _walk_scene_tree(node: Node, result: Array) -> void:
+func _walk_scene_tree(node: Node, result: Array, filter_classes: Array = []) -> void:
 	if not is_instance_valid(_controller):
 		return
 	if node == _controller:
 		for child in node.get_children():
-			_walk_scene_tree(child, result)
+			_walk_scene_tree(child, result, filter_classes)
 		return
 
-	var path_to_node: NodePath = _controller.get_path_to(node)
-	var type_name := node.get_class()
-	result.append({
-		"path": str(path_to_node),
-		"display": "%s (%s)" % [str(path_to_node), type_name],
-	})
+	# Apply class filter when provided.
+	var passes_filter := filter_classes.is_empty()
+	if not passes_filter:
+		for cls in filter_classes:
+			if node.is_class(cls):
+				passes_filter = true
+				break
+
+	if passes_filter:
+		var path_to_node: NodePath = _controller.get_path_to(node)
+		var type_name := node.get_class()
+		result.append({
+			"path": str(path_to_node),
+			"display": "%s (%s)" % [str(path_to_node), type_name],
+		})
 
 	for child in node.get_children():
-		_walk_scene_tree(child, result)
+		_walk_scene_tree(child, result, filter_classes)

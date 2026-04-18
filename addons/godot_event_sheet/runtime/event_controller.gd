@@ -28,6 +28,7 @@ const ESVisibilityCondition := preload("res://addons/godot_event_sheet/condition
 const ESTreeLifecycleCondition := preload("res://addons/godot_event_sheet/conditions/tree_lifecycle_condition.gd")
 const ESClickCondition := preload("res://addons/godot_event_sheet/conditions/click_condition.gd")
 const ESWaitAction := preload("res://addons/godot_event_sheet/actions/wait_action.gd")
+const ESRepeatAction := preload("res://addons/godot_event_sheet/actions/repeat_action.gd")
 
 ## The EventSheet resource containing all events.
 @export var event_sheet: ESEventSheet = null
@@ -388,6 +389,24 @@ func _execute_actions(event: ESEventItem, delta: float, start_index: int = 0) ->
 						_execute_actions(event, 0.0, i + 1)
 			)
 			return
+		if action is ESRepeatAction:
+			var repeat_act := action as ESRepeatAction
+			# Execute the remaining actions repeat_count times synchronously.
+			for _r in range(repeat_act.repeat_count):
+				_execute_actions_range(event, delta, i + 1, event.actions.size())
+			return
+		action.execute(self, delta)
+
+
+## Execute a range of actions (helper for ESRepeatAction).
+func _execute_actions_range(event: ESEventItem, delta: float, from_idx: int, to_idx: int) -> void:
+	for i in range(from_idx, to_idx):
+		var action := event.actions[i] as ESAction
+		if not action:
+			continue
+		# Skip nested Wait/Repeat inside a repeat block to avoid infinite loops.
+		if action is ESWaitAction or action is ESRepeatAction:
+			continue
 		action.execute(self, delta)
 
 

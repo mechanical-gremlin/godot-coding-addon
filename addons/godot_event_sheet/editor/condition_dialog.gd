@@ -112,13 +112,13 @@ const CONDITION_CATEGORIES := [
 		]
 	},
 	{
-		"label": "🔀 State",
+		"label": "🔀 Game State (Phases)",
 		"items": [
 			{"label": "State: Check State", "key": "state_check"},
 		]
 	},
 	{
-		"label": "📊 Variables",
+		"label": "📊 Counters & Flags",
 		"items": [
 			{"label": "Variable: Compare Value", "key": "variable_compare"},
 			{"label": "Variable: Array Contains", "key": "variable_contains"},
@@ -519,10 +519,47 @@ func build_property_fields(container: VBoxContainer, condition: ESCondition) -> 
 				"Enter an input action (e.g., ui_up, ui_accept) or key name (e.g., W, Space, Up)")
 
 	elif condition is ESCollisionCondition:
-		_add_node_path_field(container, "Detector Node:", condition, "detector_path",
-			"Path to the Area2D/Area3D node (leave empty for parent; ignored when Detector Group is set)")
-		_add_string_field(container, "Detector Group:", condition, "detector_group",
+		# --- Mutual exclusion: Specific Node vs. Group ---
+		var detect_mode_hbox := HBoxContainer.new()
+		container.add_child(detect_mode_hbox)
+		var detect_mode_label := Label.new()
+		detect_mode_label.text = "Detect using:"
+		detect_mode_label.custom_minimum_size.x = 150
+		detect_mode_hbox.add_child(detect_mode_label)
+		var detect_mode_btn := OptionButton.new()
+		detect_mode_btn.add_item("Specific Node")
+		detect_mode_btn.add_item("All Nodes in Group")
+		detect_mode_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		detect_mode_hbox.add_child(detect_mode_btn)
+
+		# Containers for each mode (only one visible at a time).
+		var node_row := VBoxContainer.new()
+		container.add_child(node_row)
+		var group_row := VBoxContainer.new()
+		container.add_child(group_row)
+
+		_add_node_path_field(node_row, "Detector Node:", condition, "detector_path",
+			"Path to the Area2D/Area3D node (leave empty for parent)",
+			Callable(), ["Area2D", "Area3D", "CharacterBody2D", "CharacterBody3D",
+			             "RigidBody2D", "RigidBody3D"])
+		_add_string_field(group_row, "Detector Group:", condition, "detector_group",
 			"Group name — connect ALL nodes in this group as detectors (e.g., hazards, saws)")
+
+		# Determine initial mode from current condition state.
+		var initial_mode := 0 if condition.detector_group.is_empty() else 1
+		detect_mode_btn.selected = initial_mode
+		node_row.visible = (initial_mode == 0)
+		group_row.visible = (initial_mode == 1)
+
+		detect_mode_btn.item_selected.connect(func(idx: int):
+			node_row.visible = (idx == 0)
+			group_row.visible = (idx == 1)
+			if idx == 0:
+				condition.detector_group = ""
+			else:
+				condition.detector_path = NodePath("")
+		)
+
 		_add_string_field(container, "Filter Group:", condition, "filter_group",
 			"Only trigger for colliding nodes in this group (leave empty for all)")
 		_add_string_field(container, "Filter Class:", condition, "filter_class",
@@ -530,7 +567,9 @@ func build_property_fields(container: VBoxContainer, condition: ESCondition) -> 
 
 	elif condition is ESButtonCondition:
 		_add_node_path_field(container, "Button Node:", condition, "button_path",
-			"Path to the Button node to listen to (e.g., ../StartButton)")
+			"Path to the Button node to listen to (e.g., ../StartButton)",
+			Callable(), ["Button", "CheckBox", "CheckButton", "LinkButton",
+			             "OptionButton", "TextureButton", "BaseButton"])
 
 	elif condition is ESSignalCondition:
 		_add_node_path_field(container, "Source Node:", condition, "source_path",
@@ -555,7 +594,8 @@ func build_property_fields(container: VBoxContainer, condition: ESCondition) -> 
 
 	elif condition is ESPhysicsCondition:
 		_add_node_path_field(container, "Target Node:", condition, "node_path",
-			"Path to CharacterBody2D/3D (leave empty for parent)")
+			"Path to CharacterBody2D/3D (leave empty for parent)",
+			Callable(), ["CharacterBody2D", "CharacterBody3D"])
 		_add_enum_field(container, "Physics Check:", condition, "physics_check",
 			["Is On Floor", "Is On Wall", "Is On Ceiling", "Is Moving", "Is Stopped", "Is Falling"])
 
@@ -631,17 +671,20 @@ func build_property_fields(container: VBoxContainer, condition: ESCondition) -> 
 		_add_enum_field(container, "Hover Event:", condition, "hover_type",
 			["Mouse Entered", "Mouse Exited", "Is Hovered"])
 		_add_node_path_field(container, "Target Node:", condition, "target_path",
-			"Node to detect hover on (leave empty for parent)")
+			"Node to detect hover on (leave empty for parent)",
+			Callable(), ["Area2D", "Area3D", "CollisionObject2D", "CollisionObject3D", "Control"])
 
 	elif condition is ESClickCondition:
 		_add_enum_field(container, "Click Type:", condition, "click_type",
 			["Clicked", "Click Released"])
 		_add_node_path_field(container, "Target Node:", condition, "target_path",
-			"CollisionObject2D/3D to detect clicks on (leave empty for parent)")
+			"CollisionObject2D/3D to detect clicks on (leave empty for parent)",
+			Callable(), ["CollisionObject2D", "CollisionObject3D", "Area2D", "Area3D"])
 
 	elif condition is ESAnimationCondition:
 		_add_node_path_field(container, "Animation Player:", condition, "player_path",
-			"Path to AnimationPlayer or AnimatedSprite2D (leave empty to auto-find)")
+			"Path to AnimationPlayer or AnimatedSprite2D (leave empty to auto-find)",
+			Callable(), ["AnimationPlayer", "AnimatedSprite2D", "AnimatedSprite3D"])
 		_add_string_field(container, "Animation Name:", condition, "animation_name",
 			"Only trigger for this animation (leave empty for any)")
 
@@ -649,7 +692,8 @@ func build_property_fields(container: VBoxContainer, condition: ESCondition) -> 
 		_add_enum_field(container, "Visibility Event:", condition, "visibility_type",
 			["Appeared on Screen", "Left the Screen", "Is on Screen"])
 		_add_node_path_field(container, "Notifier Node:", condition, "notifier_path",
-			"Path to VisibleOnScreenNotifier2D/3D (leave empty to auto-find)")
+			"Path to VisibleOnScreenNotifier2D/3D (leave empty to auto-find)",
+			Callable(), ["VisibleOnScreenNotifier2D", "VisibleOnScreenNotifier3D"])
 
 	elif condition is ESTreeLifecycleCondition:
 		_add_enum_field(container, "Tree Event:", condition, "tree_event",
@@ -682,9 +726,13 @@ func _add_string_field(container: VBoxContainer, label_text: String, obj: Object
 ## Helper: add a node path input field.
 ## When a controller reference is available, shows an OptionButton populated
 ## from the scene tree.  Falls back to a plain LineEdit otherwise.
+## [param filter_classes] optionally restricts the dropdown to nodes whose
+## class matches one of the given class names (via node.is_class()).  An empty
+## array means "show all nodes" (backward-compatible default).
 ## Returns a Callable that, when called with a new path String, updates the field.
 func _add_node_path_field(container: VBoxContainer, label_text: String, obj: Object,
-		prop: String, hint: String = "", on_path_changed: Callable = Callable()) -> void:
+		prop: String, hint: String = "", on_path_changed: Callable = Callable(),
+		filter_classes: Array = []) -> void:
 	var hbox := HBoxContainer.new()
 	container.add_child(hbox)
 
@@ -709,8 +757,8 @@ func _add_node_path_field(container: VBoxContainer, label_text: String, obj: Obj
 		custom_edit.visible = false
 		col.add_child(custom_edit)
 
-		# Populate.
-		var nodes := _get_scene_nodes()
+		# Populate — always include the special sentinel entries first.
+		var nodes := _get_scene_nodes(filter_classes)
 		dropdown.add_item("(leave empty — use parent)")
 		dropdown.add_item("$collider")
 		for node_info in nodes:
@@ -1002,7 +1050,9 @@ func _on_prop_dropdown_item_selected(idx: int, dropdown: OptionButton,
 
 
 ## Walk the scene tree from the controller's owner and return node info entries.
-func _get_scene_nodes() -> Array:
+## [param filter_classes] restricts results to nodes matching at least one class
+## in the list.  Empty array = no filter (show all nodes).
+func _get_scene_nodes(filter_classes: Array = []) -> Array:
 	var result := []
 	if not _controller or not is_instance_valid(_controller):
 		return result
@@ -1011,24 +1061,33 @@ func _get_scene_nodes() -> Array:
 	if not scene_root:
 		return result
 
-	_walk_scene_tree(scene_root, result)
+	_walk_scene_tree(scene_root, result, filter_classes)
 	return result
 
 
-func _walk_scene_tree(node: Node, result: Array) -> void:
+func _walk_scene_tree(node: Node, result: Array, filter_classes: Array = []) -> void:
 	if not is_instance_valid(_controller):
 		return
 	if node == _controller:
 		for child in node.get_children():
-			_walk_scene_tree(child, result)
+			_walk_scene_tree(child, result, filter_classes)
 		return
 
-	var path_to_node: NodePath = _controller.get_path_to(node)
-	var type_name := node.get_class()
-	result.append({
-		"path": str(path_to_node),
-		"display": "%s (%s)" % [str(path_to_node), type_name],
-	})
+	# Apply class filter when provided.
+	var passes_filter := filter_classes.is_empty()
+	if not passes_filter:
+		for cls in filter_classes:
+			if node.is_class(cls):
+				passes_filter = true
+				break
+
+	if passes_filter:
+		var path_to_node: NodePath = _controller.get_path_to(node)
+		var type_name := node.get_class()
+		result.append({
+			"path": str(path_to_node),
+			"display": "%s (%s)" % [str(path_to_node), type_name],
+		})
 
 	for child in node.get_children():
-		_walk_scene_tree(child, result)
+		_walk_scene_tree(child, result, filter_classes)
