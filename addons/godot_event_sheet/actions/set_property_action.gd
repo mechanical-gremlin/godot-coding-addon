@@ -9,6 +9,7 @@ enum SetMode {
 	SUBTRACT,  ## Subtract the value from the current property
 	MULTIPLY,  ## Multiply the current property by the value
 	TOGGLE,    ## Toggle a boolean property
+	DIVIDE,    ## Divide the current property by the value (safe: no-op if value is 0)
 }
 
 ## Path to the target node. Leave empty to use the EventController's parent.
@@ -31,7 +32,7 @@ enum SetMode {
 
 func get_summary() -> String:
 	var target := str(target_path) if not target_path.is_empty() else "parent"
-	var mode_names := ["Set", "Add", "Subtract", "Multiply", "Toggle"]
+	var mode_names := ["Set", "Add", "Subtract", "Multiply", "Toggle", "Divide"]
 	return "%s %s.%s = %s" % [mode_names[set_mode], target, property_name, value]
 
 
@@ -142,6 +143,13 @@ func _compute_value(current: Variant, controller: Node) -> Variant:
 			return current - _convert_to_type(resolved, typeof(current))
 		SetMode.MULTIPLY:
 			return current * _convert_to_type(resolved, typeof(current))
+		SetMode.DIVIDE:
+			var divisor = _convert_to_type(resolved, typeof(current))
+			if (typeof(divisor) == TYPE_FLOAT and divisor == 0.0) or \
+					(typeof(divisor) == TYPE_INT and divisor == 0):
+				push_warning("EventSheet: SetProperty DIVIDE by zero ignored.")
+				return current
+			return current / divisor
 	return current
 
 
@@ -155,6 +163,11 @@ func _compute_float(current: float, val: float) -> float:
 			return current - val
 		SetMode.MULTIPLY:
 			return current * val
+		SetMode.DIVIDE:
+			if val == 0.0:
+				push_warning("EventSheet: SetProperty DIVIDE by zero ignored.")
+				return current
+			return current / val
 		SetMode.TOGGLE:
 			return 0.0 if current != 0.0 else 1.0
 	return current
