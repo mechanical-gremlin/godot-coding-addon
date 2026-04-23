@@ -52,6 +52,8 @@ func _ready() -> void:
 			push_warning("EventSheet: No valid EventSheet assigned to %s" % name)
 		return
 
+	event_sheet = event_sheet.duplicate(true)
+
 	_setup_custom_signals()
 	_categorize_events()
 	_setup_connections()
