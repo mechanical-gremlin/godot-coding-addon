@@ -41,3 +41,9 @@ func move_event(from: int, to: int) -> void:
 		events.remove_at(from)
 		events.insert(to, item)
 		emit_changed()
+
+
+## Insert a (pre-built) event at the given index.
+func insert_event(index: int, item: Resource) -> void:
+	events.insert(clamp(index, 0, events.size()), item)
+	emit_changed()

@@ -64,6 +64,15 @@ func remove_action(index: int) -> void:
 		emit_changed()
 
 
+## Move an action from one index to another.
+func move_action(from: int, to: int) -> void:
+	if from >= 0 and from < actions.size() and to >= 0 and to < actions.size():
+		var item := actions[from]
+		actions.remove_at(from)
+		actions.insert(to, item)
+		emit_changed()
+
+
 ## Add a sub-event under this block.
 func add_sub_event(item: Resource) -> void:
 	sub_events.append(item)
@@ -74,4 +83,13 @@ func add_sub_event(item: Resource) -> void:
 func remove_sub_event(index: int) -> void:
 	if index >= 0 and index < sub_events.size():
 		sub_events.remove_at(index)
+		emit_changed()
+
+
+## Move a sub-event from one index to another.
+func move_sub_event(from: int, to: int) -> void:
+	if from >= 0 and from < sub_events.size() and to >= 0 and to < sub_events.size():
+		var item := sub_events[from]
+		sub_events.remove_at(from)
+		sub_events.insert(to, item)
 		emit_changed()

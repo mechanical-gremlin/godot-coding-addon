@@ -411,6 +411,19 @@ func _create_event_row(event: ESEventItem, index: int) -> PanelContainer:
 		)
 		header.add_child(block_btn)
 
+	# Duplicate button.
+	var dupe_btn := Button.new()
+	dupe_btn.text = "⧉"
+	dupe_btn.tooltip_text = "Duplicate this event block"
+	dupe_btn.pressed.connect(func():
+		var copy := _duplicate_event_item(event)
+		copy.event_name = event.event_name + " (copy)"
+		_current_sheet.insert_event(index + 1, copy)
+		_mark_resource_modified()
+		_refresh()
+	)
+	header.add_child(dupe_btn)
+
 	# Delete button.
 	var delete_btn := Button.new()
 	delete_btn.text = "✕"
@@ -568,6 +581,44 @@ func _create_sub_event_row(sub_event: ESEventItem, parent_event: ESEventItem, su
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(spacer)
+
+	# Move up button.
+	var move_up_btn := Button.new()
+	move_up_btn.text = "▲"
+	move_up_btn.tooltip_text = "Move sub-event up"
+	move_up_btn.disabled = sub_index == 0
+	move_up_btn.pressed.connect(func():
+		parent_event.move_sub_event(sub_index, sub_index - 1)
+		_mark_resource_modified()
+		_refresh()
+	)
+	header.add_child(move_up_btn)
+
+	# Move down button.
+	var move_down_btn := Button.new()
+	move_down_btn.text = "▼"
+	move_down_btn.tooltip_text = "Move sub-event down"
+	move_down_btn.disabled = sub_index >= parent_event.sub_events.size() - 1
+	move_down_btn.pressed.connect(func():
+		parent_event.move_sub_event(sub_index, sub_index + 1)
+		_mark_resource_modified()
+		_refresh()
+	)
+	header.add_child(move_down_btn)
+
+	# Duplicate button.
+	var dupe_btn := Button.new()
+	dupe_btn.text = "⧉"
+	dupe_btn.tooltip_text = "Duplicate this sub-event"
+	dupe_btn.pressed.connect(func():
+		var copy := _duplicate_event_item(sub_event)
+		copy.event_name = sub_event.event_name + " (copy)"
+		parent_event.sub_events.insert(sub_index + 1, copy)
+		parent_event.emit_changed()
+		_mark_resource_modified()
+		_refresh()
+	)
+	header.add_child(dupe_btn)
 
 	# Delete button.
 	var delete_btn := Button.new()
@@ -773,6 +824,30 @@ func _create_action_row(action: ESAction, event: ESEventItem, action_index: int)
 	edit_btn.pressed.connect(func(): _show_action_edit_dialog(action, event, action_index))
 	row.add_child(edit_btn)
 
+	# Move up button.
+	var move_up_btn := Button.new()
+	move_up_btn.text = "▲"
+	move_up_btn.tooltip_text = "Move action up"
+	move_up_btn.disabled = action_index == 0
+	move_up_btn.pressed.connect(func():
+		event.move_action(action_index, action_index - 1)
+		_mark_resource_modified()
+		_refresh()
+	)
+	row.add_child(move_up_btn)
+
+	# Move down button.
+	var move_down_btn := Button.new()
+	move_down_btn.text = "▼"
+	move_down_btn.tooltip_text = "Move action down"
+	move_down_btn.disabled = action_index >= event.actions.size() - 1
+	move_down_btn.pressed.connect(func():
+		event.move_action(action_index, action_index + 1)
+		_mark_resource_modified()
+		_refresh()
+	)
+	row.add_child(move_down_btn)
+
 	# Delete button.
 	var del_btn := Button.new()
 	del_btn.text = "✕"
@@ -787,6 +862,28 @@ func _create_action_row(action: ESAction, event: ESEventItem, action_index: int)
 
 
 # -- Event Management --
+
+## Deep-copy an ESEventItem resource (including all conditions, actions, and sub-events).
+## Returns a new ESEventItem that is completely independent of the original.
+func _duplicate_event_item(source: ESEventItem) -> ESEventItem:
+	var copy := ESEventItem.new()
+	copy.event_name = source.event_name
+	copy.enabled = source.enabled
+	copy.logic_mode = source.logic_mode
+	copy.is_block = source.is_block
+	copy.collapsed = source.collapsed
+	for cond_res in source.conditions:
+		var cond_copy := cond_res.duplicate(true)
+		copy.conditions.append(cond_copy)
+	for action_res in source.actions:
+		var action_copy := action_res.duplicate(true)
+		copy.actions.append(action_copy)
+	for sub_res in source.sub_events:
+		var sub := sub_res as ESEventItem
+		if sub:
+			copy.sub_events.append(_duplicate_event_item(sub))
+	return copy
+
 
 ## Notify the Godot editor that the resource has been modified and needs saving.
 func _mark_resource_modified() -> void:
