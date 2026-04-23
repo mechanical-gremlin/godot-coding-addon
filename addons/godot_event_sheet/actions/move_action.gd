@@ -173,4 +173,21 @@ func _resolve_toward_node(controller: Node) -> Node:
 	if path_str == "$collider":
 		var meta_val = controller.get_meta(&"_es_last_collided_node", null)
 		return meta_val if meta_val is Node else null
-	return controller.get_node_or_null(toward_node_path)
+
+	# If an absolute path is given, use it directly.
+	if path_str.begins_with("/"):
+		return controller.get_node_or_null(toward_node_path)
+
+	# Walk up the tree from the controller until we find the node.
+	# This allows finding nodes in parent scenes (e.g. Player in the Level
+	# when the EventController is inside an instanced Enemy scene).
+	var current := controller
+	while current:
+		var found := current.get_node_or_null(toward_node_path)
+		if found:
+			return found
+		current = current.get_parent()
+
+	push_warning("EventSheet: Move toward node not found at path '%s'. " \
+		+ "The node may not exist in the scene tree." % str(toward_node_path))
+	return null
