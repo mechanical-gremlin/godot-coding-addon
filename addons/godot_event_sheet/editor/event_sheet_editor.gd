@@ -873,10 +873,10 @@ func _duplicate_event_item(source: ESEventItem) -> ESEventItem:
 	copy.is_block = source.is_block
 	copy.collapsed = source.collapsed
 	for cond_res in source.conditions:
-		var cond_copy: Resource = cond_res.duplicate(true)
+		var cond_copy := cond_res.duplicate(true)
 		copy.conditions.append(cond_copy)
 	for action_res in source.actions:
-		var action_copy: Resource = action_res.duplicate(true)
+		var action_copy := action_res.duplicate(true)
 		copy.actions.append(action_copy)
 	for sub_res in source.sub_events:
 		var sub := sub_res as ESEventItem
