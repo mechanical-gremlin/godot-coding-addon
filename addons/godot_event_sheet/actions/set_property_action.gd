@@ -150,12 +150,6 @@ func _set_nested_property(target: Node, parts: PackedStringArray, controller: No
 
 
 func _compute_value(current: Variant, controller: Node) -> Variant:
-	match set_mode:
-		SetMode.TOGGLE:
-			if current is bool:
-				return not current
-			return not bool(current)
-
 	# Resolve the actual value to apply, handling both typed and String/placeholder values.
 	var actual: Variant
 	if value is String:
@@ -167,6 +161,10 @@ func _compute_value(current: Variant, controller: Node) -> Variant:
 		actual = _coerce_to_type(0, typeof(current))
 
 	match set_mode:
+		SetMode.TOGGLE:
+			if current is bool:
+				return not current
+			return not bool(current)
 		SetMode.SET:
 			return actual
 		SetMode.ADD:
