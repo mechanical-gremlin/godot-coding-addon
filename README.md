@@ -73,6 +73,18 @@ Use **Apply Template** to generate a working graph quickly, then customize node 
 - Click **Convert Legacy Sheet** to copy top-level Event Sheet logic into a graph.
 - Keep using the **Legacy Event Sheet** tab for old assets while migrating incrementally.
 
+### RPG Vertical Slice Target (Adventure-Style)
+
+Use the graph system to build a complete object-to-object gameplay loop:
+
+- Player movement and collision
+- Enemy chase/response
+- Interactables (switches, doors, pickups)
+- Health/state updates
+- Scene or UI feedback actions
+
+The included starter templates are intended as building blocks for this Zelda-like gameplay slice.
+
 | Conditions (ALL must be true) | Actions (executed in order) |
 |-------------------------------|---------------------------|
 | Every Frame + Right key held | Move parent right at speed 200 |

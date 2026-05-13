@@ -139,7 +139,8 @@ func _build_ui() -> void:
     _graph_edit.size_flags_vertical = Control.SIZE_EXPAND_FILL
     _graph_edit.connection_request.connect(_on_connection_request)
     _graph_edit.disconnection_request.connect(_on_disconnection_request)
-    _graph_edit.node_selected.connect(_on_graph_node_selected)
+    if _graph_edit.has_signal("node_selected"):
+        _graph_edit.node_selected.connect(_on_graph_node_selected)
     split.add_child(_graph_edit)
 
     _node_details = VBoxContainer.new()
@@ -205,6 +206,14 @@ func _create_graph_node_widget(node: ESGraphNode) -> GraphNode:
     label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     label.custom_minimum_size = Vector2(220, 46)
     widget.add_child(label)
+
+    var select_btn := Button.new()
+    select_btn.text = "Select"
+    select_btn.pressed.connect(func():
+        _selected_graph_node_id = node.node_id
+        _build_selected_node_panel()
+    )
+    widget.add_child(select_btn)
 
     var has_input := node.role != ESGraphNode.NodeRole.TRIGGER
     var has_output := true

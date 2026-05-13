@@ -47,7 +47,7 @@ connections.remove_at(i)
 emit_changed()
 
 
-func add_connection(from_node_id: String, to_node_id: String, from_port: String = "exec_out", to_port: String = "exec_in") -> void:
+func add_connection(from_node_id: String, to_node_id: String, from_port: String = "exec_out_0", to_port: String = "exec_in_0") -> void:
 if from_node_id.is_empty() or to_node_id.is_empty() or from_node_id == to_node_id:
 return
 for c_res in connections:
@@ -63,12 +63,19 @@ connections.append(c)
 emit_changed()
 
 
-func remove_connection(from_node_id: String, to_node_id: String, from_port: String = "exec_out", to_port: String = "exec_in") -> void:
-for i in range(connections.size() - 1, -1, -1):
-var c := connections[i] as ESGraphConnection
-if c and c.from_node_id == from_node_id and c.to_node_id == to_node_id and c.from_port == from_port and c.to_port == to_port:
-connections.remove_at(i)
-emit_changed()
+func remove_connection(from_node_id: String, to_node_id: String, from_port: String = "exec_out_0", to_port: String = "exec_in_0") -> void:
+	var removed := false
+	for i in range(connections.size() - 1, -1, -1):
+		var c := connections[i] as ESGraphConnection
+		if c and c.from_node_id == from_node_id and c.to_node_id == to_node_id and c.from_port == from_port and c.to_port == to_port:
+			connections.remove_at(i)
+			removed = true
+	if not removed:
+		for i in range(connections.size() - 1, -1, -1):
+			var c2 := connections[i] as ESGraphConnection
+			if c2 and c2.from_node_id == from_node_id and c2.to_node_id == to_node_id:
+				connections.remove_at(i)
+	emit_changed()
 
 
 func get_node_by_id(node_id: String) -> ESGraphNode:
