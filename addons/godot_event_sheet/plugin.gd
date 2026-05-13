@@ -5,7 +5,7 @@ extends EditorPlugin
 ## and manages the addon lifecycle.
 
 const EventController := preload("res://addons/godot_event_sheet/runtime/event_controller.gd")
-const EventSheetEditor := preload("res://addons/godot_event_sheet/editor/event_sheet_editor.gd")
+const GraphEditor := preload("res://addons/godot_event_sheet/editor/graph_editor.gd")
 const PlayerMovement := preload("res://addons/godot_event_sheet/movement/player_movement.gd")
 
 var _editor_panel: Control = null
@@ -38,10 +38,10 @@ func _enter_tree() -> void:
 			"res://addons/godot_event_sheet/runtime/es_global_variables.gd")
 
 	# Create and add the bottom panel editor.
-	_editor_panel = EventSheetEditor.new()
+	_editor_panel = GraphEditor.new()
 	_editor_panel.editor_interface = get_editor_interface()
 	_editor_panel.undo_redo = get_undo_redo()
-	add_control_to_bottom_panel(_editor_panel, "Event Sheet")
+	add_control_to_bottom_panel(_editor_panel, "Visual Script")
 
 
 func _exit_tree() -> void:
