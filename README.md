@@ -1,11 +1,12 @@
-# Godot Event Sheet — Visual Programming Addon for Godot 4.5
+# Godot Visual Logic — Graph Programming Addon for Godot 4.5
 
-A visual **Event Sheet** programming addon for Godot 4.5, designed for beginning programmers and game design students. Instead of writing traditional GDScript code, students create game logic by combining **Conditions** (when something happens) with **Actions** (what to do), similar to Construct 3 or GDevelop.
+A graph-first visual scripting addon for Godot 4.5, designed for beginning programmers and game design students. Instead of writing traditional GDScript code, students build gameplay by connecting **Trigger**, **Logic**, **Action**, **Data**, and **Scene Reference** nodes in a visual graph.
 
 ## Features
 
-- **Event Sheet Editor** — A bottom panel in the Godot editor for visually building game logic
+- **Visual Graph Editor** — A bottom panel graph editor for building gameplay logic with connected nodes
 - **No Code Required** — Students define behavior with conditions and actions, not GDScript
+- **Legacy Event Sheet Tab** — Existing Event Sheet projects still load and run during migration
 - **Full Signal Support** — Create, emit, and listen for custom signals between nodes
 - **Collision Detection** — Detect body and area collisions with group filtering; persistent overlap tracking
 - **Input Handling** — Respond to keyboard input, action presses, and held keys; UI button clicks
@@ -43,17 +44,46 @@ CharacterBody2D (your game object)
 ```
 
 1. Add an **EventController** node as a child of your game object
-2. Click on the EventController — the **Event Sheet** panel opens at the bottom and is immediately ready to use (an EventSheet resource is auto-created for you)
+2. Click on the EventController — the **Visual Script** panel opens at the bottom and is immediately ready to use (a Visual Graph resource is auto-created for you)
 
 ### 4. Create Events
 
-Click **+ Add Event** to open the event wizard. Each event uses a simple **"When → Then"** model:
+Use graph nodes and connections to build a simple **"When → Then"** flow:
 
-1. Pick a **trigger** (WHEN this happens) from the left list
-2. Configure its settings (e.g., which key to listen for)
-3. Pick a **reaction** (THEN do this) from the right list
-4. Configure its settings (e.g., which direction to move)
-5. Click **Create Event** — done!
+1. Add a **Trigger** node (WHEN this happens)
+2. Add one or more **Action** nodes (THEN do this)
+3. Connect trigger output ports to action input ports
+4. Configure each node in the right-side details panel
+5. Optionally add Logic/Data/Scene Ref nodes between trigger and actions
+
+### Starter Templates
+
+The Visual Graph tab includes classroom starter templates:
+
+- **Player Movement**
+- **Enemy Chase**
+- **Switch → Door**
+- **Pickup Item**
+
+Use **Apply Template** to generate a working graph quickly, then customize node settings.
+
+### Migration from Event Sheets
+
+- Open the **Visual Graph** tab.
+- Click **Convert Legacy Sheet** to copy top-level Event Sheet logic into a graph.
+- Keep using the **Legacy Event Sheet** tab for old assets while migrating incrementally.
+
+### RPG Vertical Slice Target (Adventure-Style)
+
+Use the graph system to build a complete object-to-object gameplay loop:
+
+- Player movement and collision
+- Enemy chase/response
+- Interactables (switches, doors, pickups)
+- Health/state updates
+- Scene or UI feedback actions
+
+The included starter templates are intended as building blocks for this Zelda-like gameplay slice.
 
 | Conditions (ALL must be true) | Actions (executed in order) |
 |-------------------------------|---------------------------|
@@ -62,7 +92,7 @@ Click **+ Add Event** to open the event wizard. Each event uses a simple **"When
 | Collision: body entered (group "coins") | Print "Coin collected!" + Emit "coin_collected" signal |
 | Signal "coin_collected" received | Add 1 to score property |
 
-## Available Conditions
+## Legacy Event Sheet Conditions
 
 | Category | Condition | Description |
 |----------|-----------|-------------|
@@ -93,7 +123,7 @@ Click **+ Add Event** to open the event wizard. Each event uses a simple **"When
 | **Visibility** | Appeared/Left/Is On Screen | Fires when a node enters or leaves the viewport |
 | **Scene Tree** | Added/Removed/Child Added/Removed | Fires on scene tree events for a node |
 
-## Available Actions
+## Legacy Event Sheet Actions
 
 | Category | Action | Description |
 |----------|--------|-------------|
@@ -302,8 +332,16 @@ addons/godot_event_sheet/
 │   └── print_action.gd
 ├── runtime/
 │   └── event_controller.gd # Runtime event processor node
+├── graph/                  # New visual graph model/runtime helpers
+│   ├── visual_graph.gd
+│   ├── graph_node.gd
+│   ├── graph_connection.gd
+│   ├── graph_variable.gd
+│   ├── graph_templates.gd
+│   └── graph_converter.gd
 └── editor/                 # Editor UI
-    ├── event_sheet_editor.gd
+    ├── graph_editor.gd
+    ├── legacy_event_sheet_editor.gd
     ├── add_event_dialog.gd
     ├── condition_dialog.gd
     └── action_dialog.gd

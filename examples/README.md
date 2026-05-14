@@ -60,8 +60,8 @@ same folder.
 ## Tips for Students
 
 - Click the **EventController** node in the Scene tree to open the
-  **Event Sheet** panel at the bottom of the editor.
-- Use **+ Add Event** in the panel to create new events visually.
+  **Visual Script** panel at the bottom of the editor.
+- Use the **Visual Graph** tab for new logic and **Legacy Event Sheet** tab for existing event assets.
 - Every condition and action class has a global `class_name` (e.g.
   `ESMoveAction`, `ESCollisionCondition`) so you can also reference them
   from GDScript if needed.

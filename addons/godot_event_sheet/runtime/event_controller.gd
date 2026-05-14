@@ -29,9 +29,15 @@ const ESTreeLifecycleCondition := preload("res://addons/godot_event_sheet/condit
 const ESClickCondition := preload("res://addons/godot_event_sheet/conditions/click_condition.gd")
 const ESWaitAction := preload("res://addons/godot_event_sheet/actions/wait_action.gd")
 const ESRepeatAction := preload("res://addons/godot_event_sheet/actions/repeat_action.gd")
+const ESEmitSignalAction := preload("res://addons/godot_event_sheet/actions/emit_signal_action.gd")
+const ESVisualGraph := preload("res://addons/godot_event_sheet/graph/visual_graph.gd")
+const ESGraphNode := preload("res://addons/godot_event_sheet/graph/graph_node.gd")
 
 ## The EventSheet resource containing all events.
 @export var event_sheet: ESEventSheet = null
+
+## New visual graph resource. When assigned, runtime uses graph mode.
+@export var visual_graph: ESVisualGraph = null
 
 ## If true, print debug messages when events fire.
 @export var debug_mode: bool = false
@@ -42,14 +48,29 @@ var _physics_events: Array = []
 var _ready_events: Array = []
 var _signal_events: Array = []  # Events triggered by signals/collisions/timers
 var _initialized: bool = false
+var _using_graph_mode: bool = false
+
+# Graph runtime buckets (trigger nodes by loop category).
+var _graph_ready_triggers: Array = []
+var _graph_process_triggers: Array = []
+var _graph_physics_triggers: Array = []
+var _graph_signal_triggers: Array = []
 
 
 func _ready() -> void:
 	if Engine.is_editor_hint():
 		return
+	_using_graph_mode = visual_graph != null
+	if _using_graph_mode:
+		visual_graph = visual_graph.duplicate(true)
+		_setup_graph_runtime()
+		_initialized = true
+		_evaluate_graph_triggers(_graph_ready_triggers, 0.0)
+		return
+
 	if not event_sheet:
 		if debug_mode:
-			push_warning("EventSheet: No valid EventSheet assigned to %s" % name)
+			push_warning("EventSheet: No valid EventSheet or VisualGraph assigned to %s" % name)
 		return
 
 	event_sheet = event_sheet.duplicate(true)
@@ -74,6 +95,11 @@ func _process(delta: float) -> void:
 		return
 	if not _initialized:
 		return
+	if _using_graph_mode:
+		_evaluate_graph_triggers(_graph_process_triggers, delta)
+		_evaluate_graph_triggers(_graph_signal_triggers, delta)
+		_track_graph_key_states()
+		return
 	_evaluate_events(_process_events, delta)
 	# Also check signal/collision/timer events during process.
 	_evaluate_events(_signal_events, delta)
@@ -84,6 +110,10 @@ func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint():
 		return
 	if not _initialized:
+		return
+	if _using_graph_mode:
+		_evaluate_graph_triggers(_graph_physics_triggers, delta)
+		_track_graph_key_states()
 		return
 	_evaluate_events(_physics_events, delta)
 	_track_key_states()
@@ -611,3 +641,216 @@ func _connect_click(cond) -> void:
 
 	if debug_mode:
 		print("EventSheet: Connected click input_event on %s" % target.name)
+
+
+## -------- Visual Graph runtime --------
+
+func _setup_graph_runtime() -> void:
+	if not visual_graph or not visual_graph.enabled:
+		return
+	_setup_custom_signals_for_graph()
+	_categorize_graph_triggers()
+	_setup_graph_connections()
+	for trigger_res in visual_graph.get_trigger_nodes():
+		var trigger := trigger_res as ESGraphNode
+		if not trigger:
+			continue
+		for cond_res in trigger.conditions:
+			var cond := cond_res as ESCondition
+			if cond is ESLifecycleCondition:
+				cond._on_ready()
+
+
+func _setup_custom_signals_for_graph() -> void:
+	if not visual_graph:
+		return
+	# Register user signals only when there is an emit action that targets this controller.
+	for node_res in visual_graph.nodes:
+		var node := node_res as ESGraphNode
+		if not node or not node.enabled:
+			continue
+		var action := node.action as ESEmitSignalAction
+		if not action:
+			continue
+		if action.target_path.is_empty() and not action.signal_name.is_empty() and not has_user_signal(action.signal_name):
+			add_user_signal(action.signal_name)
+
+
+func _categorize_graph_triggers() -> void:
+	if not visual_graph:
+		return
+	for trigger_res in visual_graph.get_trigger_nodes():
+		var trigger := trigger_res as ESGraphNode
+		if not trigger:
+			continue
+		var category := _determine_graph_trigger_category(trigger)
+		match category:
+			"ready":
+				_graph_ready_triggers.append(trigger)
+			"physics":
+				_graph_physics_triggers.append(trigger)
+			"signal":
+				_graph_signal_triggers.append(trigger)
+			_:
+				_graph_process_triggers.append(trigger)
+
+
+func _determine_graph_trigger_category(trigger: ESGraphNode) -> String:
+	var has_physics_cond := false
+	for cond_res in trigger.conditions:
+		var cond := cond_res as ESCondition
+		if not cond:
+			continue
+		if cond is ESLifecycleCondition:
+			match cond.lifecycle_type:
+				ESLifecycleCondition.LifecycleType.READY:
+					return "ready"
+				ESLifecycleCondition.LifecycleType.PHYSICS_PROCESS:
+					return "physics"
+		if cond is ESSignalCondition or cond is ESCollisionCondition \
+				or cond is ESTimerCondition or cond is ESButtonCondition \
+				or cond is ESMouseHoverCondition or cond is ESAnimationCondition \
+				or cond is ESVisibilityCondition or cond is ESTreeLifecycleCondition \
+				or cond is ESClickCondition:
+			return "signal"
+		if cond is ESPhysicsCondition:
+			has_physics_cond = true
+	if has_physics_cond:
+		return "physics"
+	return "process"
+
+
+func _setup_graph_connections() -> void:
+	if not visual_graph:
+		return
+	for trigger_res in visual_graph.get_trigger_nodes():
+		var trigger := trigger_res as ESGraphNode
+		if not trigger:
+			continue
+		for cond_res in trigger.conditions:
+			var cond := cond_res as ESCondition
+			if not cond:
+				continue
+			if cond is ESCollisionCondition:
+				_connect_collision(cond)
+			elif cond is ESSignalCondition:
+				_connect_signal_condition(cond)
+			elif cond is ESTimerCondition:
+				_setup_timer(cond)
+			elif cond is ESButtonCondition:
+				_connect_button(cond)
+			elif cond is ESMouseHoverCondition:
+				_connect_mouse_hover(cond)
+			elif cond is ESAnimationCondition:
+				_connect_animation(cond)
+			elif cond is ESVisibilityCondition:
+				_connect_visibility(cond)
+			elif cond is ESTreeLifecycleCondition:
+				_connect_tree_lifecycle(cond)
+			elif cond is ESClickCondition:
+				_connect_click(cond)
+
+
+func _evaluate_graph_triggers(triggers: Array, delta: float) -> void:
+	for trigger_res in triggers:
+		var trigger := trigger_res as ESGraphNode
+		if not trigger or not trigger.enabled:
+			continue
+
+		var passed := _evaluate_graph_trigger_conditions(trigger, delta)
+		if not passed:
+			continue
+
+		for cond_res in trigger.conditions:
+			if cond_res is ESCollisionCondition:
+				var coll := cond_res as ESCollisionCondition
+				if coll.colliding_node:
+					set_meta(&"_es_last_collided_node", coll.colliding_node)
+				break
+
+		_execute_graph_flow_from(trigger.node_id, delta, {})
+
+
+func _evaluate_graph_trigger_conditions(trigger: ESGraphNode, delta: float) -> bool:
+	if trigger.conditions.is_empty():
+		return true
+	if trigger.condition_logic == ESGraphNode.ConditionLogic.OR:
+		for cond_res in trigger.conditions:
+			var cond := cond_res as ESCondition
+			if not cond:
+				continue
+			var result := cond.evaluate(self, delta)
+			if cond.negated:
+				result = not result
+			if result:
+				return true
+		return false
+
+	for cond_res in trigger.conditions:
+		var cond := cond_res as ESCondition
+		if not cond:
+			continue
+		var result := cond.evaluate(self, delta)
+		if cond.negated:
+			result = not result
+		if not result:
+			return false
+	return true
+
+
+func _execute_graph_flow_from(node_id: String, delta: float, visited: Dictionary) -> void:
+	if visited.get(node_id, false):
+		return
+	visited[node_id] = true
+
+	var node := visual_graph.get_node_by_id(node_id) as ESGraphNode
+	if not node or not node.enabled:
+		return
+
+	match node.role:
+		ESGraphNode.NodeRole.ACTION:
+			var action := node.action as ESAction
+			if action:
+				action.execute(self, delta)
+		ESGraphNode.NodeRole.LOGIC:
+			if not node.bool_value:
+				return
+		ESGraphNode.NodeRole.DATA:
+			if not node.data_key.is_empty():
+				set_meta(&"_es_graph_%s" % node.data_key, node.data_value)
+		ESGraphNode.NodeRole.SCENE_REFERENCE:
+			if not node.scene_node_path.is_empty():
+				var scene_node := get_node_or_null(node.scene_node_path)
+				if scene_node:
+					set_meta(&"_es_graph_scene_ref_%s" % node.node_id, scene_node)
+
+	var outgoing := visual_graph.get_outgoing(node_id)
+	for conn in outgoing:
+		_execute_graph_flow_from(conn.to_node_id, delta, visited.duplicate())
+
+
+func _track_graph_key_states() -> void:
+	if not visual_graph:
+		return
+	set_meta("_es_prev_mouse_left", Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT))
+	set_meta("_es_prev_mouse_right", Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT))
+	set_meta("_es_prev_mouse_middle", Input.is_mouse_button_pressed(MOUSE_BUTTON_MIDDLE))
+	set_meta("_es_any_key_prev", Input.is_anything_pressed())
+
+	for trigger_res in visual_graph.get_trigger_nodes():
+		var trigger := trigger_res as ESGraphNode
+		if not trigger:
+			continue
+		for cond_res in trigger.conditions:
+			if cond_res is ESInputCondition:
+				var cond := cond_res as ESInputCondition
+				if not cond.action_or_key.is_empty() and not InputMap.has_action(cond.action_or_key):
+					var keycode := OS.find_keycode_from_string(cond.action_or_key)
+					if keycode != KEY_NONE:
+						set_meta("_es_prev_key_%d" % keycode, Input.is_key_pressed(keycode))
+			elif cond_res is ESJoypadCondition:
+				var jcond := cond_res as ESJoypadCondition
+				if jcond.check_type in [ESJoypadCondition.JoypadCheck.BUTTON_PRESSED,
+						ESJoypadCondition.JoypadCheck.BUTTON_RELEASED]:
+					var meta_key := "_es_prev_joy_%d_%d" % [jcond.device_id, jcond.joypad_button]
+					set_meta(meta_key, Input.is_joy_button_pressed(jcond.device_id, jcond.joypad_button))
